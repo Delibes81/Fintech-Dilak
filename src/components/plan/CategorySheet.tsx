@@ -75,8 +75,8 @@ export function CategorySheet({ open, onOpenChange, draft }: { open: boolean; on
         </div>
         <label className="flex flex-col gap-1.5">
           <span className="label">Palabras que la detectan</span>
-          <input className="field" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="Ej: kiosco, panadería" />
-          <span className="text-[12.5px] text-ink-3">Separadas por coma. Al escribir el detalle de un gasto, si aparece alguna, se elige esta categoría sola.</span>
+          <input className="field" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="Ej: don Chucho, tianguis del martes" />
+          <span className="text-[12.5px] text-ink-3">Separadas por coma. Dilak ya reconoce comercios y productos comunes (Oxxo, Telcel, Pemex, croquetas, tortillas…) y aprende de cada corrección; sumá acá solo lo que no adivine.</span>
         </label>
       </div>
     </Sheet>

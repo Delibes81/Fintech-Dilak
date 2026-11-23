@@ -44,9 +44,9 @@ describe("detectCategory", () => {
     expect(detectCategory("Súper del barrio", CATS, [])?.id).toBe("super");
     expect(detectCategory("supermercadito", CATS, [])?.id).toBe("super");
     expect(detectCategory("cobré el sueldo", CATS, [])?.id).toBe("sueldo");
-    expect(detectCategory("Kiosco", CATS, [])).toBeNull();
-    const hist = [tx({ note: "Kiosco", category_id: "super" })];
-    expect(detectCategory("kiosco", CATS, hist)?.id).toBe("super");
+    expect(detectCategory("Amazon", CATS, [])).toBeNull();
+    const hist = [tx({ note: "Amazon", category_id: "super" })];
+    expect(detectCategory("amazon", CATS, hist)?.id).toBe("super");
   });
   it("arma atajos con lo que se repite", () => {
     const h = [tx({ note: "Café", amount: 3000 }), tx({ note: "café", amount: 3500 }), tx({ note: "Única" })];

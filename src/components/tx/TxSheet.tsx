@@ -12,7 +12,7 @@ import { CategoryIcon } from "@/components/ui/CategoryIcon";
 import { AmountDisplay, AmountPad, numberToPad, padToNumber, pressKey } from "./AmountPad";
 import { useHousehold } from "@/store/household";
 import { NO_CENTS } from "@/lib/money";
-import { detectCategory, frequentEntries, rankCategories } from "@/lib/smart";
+import { detectCategory, frequentEntries, rankCategories, SAVING_HINT } from "@/lib/smart";
 import { dayLabel, shiftDays } from "@/lib/dates";
 import type { Kind, NewTx, Tx } from "@/lib/types";
 
@@ -58,7 +58,7 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
       else if (amountFromText) { setAmount(""); setAmountFromText(false); }
     }
     if (categoryTouched) return;
-    const c = detectCategory(v, categories.filter((x) => x.bucket !== "saving" || /ahorr|invers|plazo|fci/i.test(v)), history);
+    const c = detectCategory(v, categories.filter((x) => x.bucket !== "saving" || SAVING_HINT.test(v)), history);
     if (c) { setCategoryId(c.id); setKind(c.kind); setAutoPicked(true); }
     else if (autoPicked) { setCategoryId(null); setAutoPicked(false); }
   }

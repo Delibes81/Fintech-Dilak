@@ -4,7 +4,7 @@
  * "45 mil 500 súper categoría supermercado" · "un millón doscientos mil del auto"
  */
 import { parseAmount } from "./money";
-import { detectCategory, normalize } from "./smart";
+import { detectCategory, normalize, SAVING_HINT } from "./smart";
 import { shiftDays } from "./dates";
 import type { Category, Kind, Tx } from "./types";
 
@@ -28,7 +28,7 @@ const INCOME_WORDS = [
 const FILLER = new Set([
   "gaste", "gastamos", "pague", "pagamos", "compre", "compramos", "cobre", "cobramos", "recibi", "recibimos", "fue", "fueron",
   "son", "es", "de", "del", "en", "el", "la", "los", "las", "un", "una", "por", "para", "con", "y", "a", "al", "me", "nos",
-  "pagaron", "salio", "salieron", "costo", "cuesta", "hoy", "ayer", "anteayer", "antier", "que", "lo", "le",
+  "pagaron", "puse", "pusimos", "meti", "metimos", "salio", "salieron", "costo", "cuesta", "hoy", "ayer", "anteayer", "antier", "que", "lo", "le",
 ]);
 const WEEKDAYS: Record<string, number> = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
 
@@ -118,7 +118,7 @@ export function parseSpoken(text: string, categories: Category[], history: Tx[],
   while (rest.length && FILLER.has(rest[rest.length - 1].n)) rest.pop();
   const note = rest.map((t) => t.raw.replace(/[.,;:!?¿¡]+$/g, "")).join(" ").trim();
 
-  if (!category) category = detectCategory(note || transcript, active.filter((c) => c.bucket !== "saving" || /ahorr|invers/.test(flat)), history);
+  if (!category) category = detectCategory(note || transcript, active.filter((c) => c.bucket !== "saving" || SAVING_HINT.test(flat)), history);
   if (category) kind = category.kind;
   const finalNote = note ? note.charAt(0).toUpperCase() + note.slice(1) : category?.name ?? "";
 
