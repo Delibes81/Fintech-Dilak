@@ -96,7 +96,7 @@ interface Base {
 export function HouseholdProvider({ children, fallback }: { children: ReactNode; fallback: ReactNode }) {
   const router = useRouter();
   const [base, setBase] = useState<Base | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const [noAccess, setNoAccess] = useState(false);
   const [months, setMonths] = useState<Record<string, Tx[] | undefined>>({});
   const [ym, setYm] = useState<string>("");
@@ -113,7 +113,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
       const user = auth.user;
       if (!user) { router.replace("/login"); return; }
       const { data: mem, error } = await sb.from("household_members").select("household_id").eq("user_id", user.id).limit(1);
-      if (error) { if (alive) setFailed(true); return; }
+      if (error) { if (alive) setFailed(`${error.code ?? ""} ${error.message}`.trim()); return; }
       if (!mem?.length) { if (alive) setNoAccess(true); return; }
       const hid = mem[0].household_id as string;
       const [h, ms, cs, rs, gs] = await Promise.all([
@@ -124,7 +124,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
         sb.from("goals").select("*").eq("household_id", hid),
       ]);
       if (!alive) return;
-      if (h.error || !h.data) { setFailed(true); return; }
+      if (h.error || !h.data) { setFailed(h.error ? `${h.error.code ?? ""} ${h.error.message}`.trim() : "No se encontró el hogar"); return; }
       setToday(todayISO());
       setYm(currentYM());
       setBase({
@@ -136,7 +136,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
         recurring: (rs.data ?? []).map(toRec),
         goals: (gs.data ?? []).map(toGoal),
       });
-    })().catch(() => alive && setFailed(true));
+    })().catch((e: unknown) => alive && setFailed(e instanceof Error ? e.message : "Error desconocido"));
     return () => { alive = false; };
   }, [router]);
 
@@ -403,7 +403,11 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
         <div className="max-w-sm space-y-3">
           <p className="text-xl font-bold">No pudimos abrir Fintech Dilak</p>
           <p className="text-ink-2">Revisá tu conexión a internet. Si el problema sigue, cerrá sesión y volvé a entrar.</p>
-          <button className="btn btn-primary" onClick={() => location.reload()}>Reintentar</button>
+          <p className="num rounded-xl border border-line bg-surface-2 px-3 py-2 text-left text-[12px] break-words text-ink-3">Detalle técnico: {failed}</p>
+          <div className="flex justify-center gap-2">
+            <button className="btn" onClick={async () => { await supabase().auth.signOut(); router.replace("/login"); }}>Cerrar sesión</button>
+            <button className="btn btn-primary" onClick={() => location.reload()}>Reintentar</button>
+          </div>
         </div>
       </div>
     );

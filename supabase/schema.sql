@@ -107,6 +107,16 @@ create trigger transactions_touch before update on public.transactions
 -- Seguridad (RLS): cada persona solo ve los datos de su hogar
 -- ---------------------------------------------------------------------------
 
+-- Permisos de la API para usuarios con sesión. Los proyectos nuevos de Supabase ya no
+-- los dan por defecto; sin esto la app no puede leer nada. Lo que cada persona ve lo
+-- siguen limitando las políticas RLS de abajo. Los visitantes sin sesión (anon) no
+-- reciben ningún permiso.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on
+  public.households, public.household_members, public.categories,
+  public.recurring, public.goals, public.transactions
+  to authenticated;
+
 create or replace function public.is_member(hid uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.household_members where household_id = hid and user_id = auth.uid());
@@ -230,6 +240,7 @@ revoke all on function public.seed_categories(uuid) from public, anon, authentic
 revoke all on function public.setup_household(text, text, text[], text[]) from public, anon, authenticated;
 revoke all on function public.contribute_goal(uuid, numeric, date) from public, anon;
 grant execute on function public.contribute_goal(uuid, numeric, date) to authenticated;
+grant execute on function public.is_member(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Tiempo real: los cambios de uno aparecen al instante en el teléfono del otro
