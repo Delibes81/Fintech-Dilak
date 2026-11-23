@@ -22,6 +22,7 @@ import { goalPlan } from "@/lib/finance/engine";
 import { monthName } from "@/lib/dates";
 import { formatPct } from "@/lib/money";
 import { cn } from "@/lib/cn";
+import { VoiceWidget } from "@/components/voice/VoiceWidget";
 
 export default function Inicio() {
   const hh = useHousehold();
@@ -47,6 +48,8 @@ export default function Inicio() {
             </h1>
           </div>
         </RevealItem>
+
+        <RevealItem><VoiceWidget /></RevealItem>
 
         {/* Fila 1: tarjeta principal + salud */}
         <div className="grid gap-4 md:grid-cols-12 md:gap-5">

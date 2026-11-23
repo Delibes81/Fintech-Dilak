@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Check, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, Check, Mic, Plus, Sparkles, Trash2 } from "lucide-react";
+import { amountInText, parseSpoken } from "@/lib/voice";
+import { speechErrorText, useSpeech, useSpeechSupported } from "@/hooks/useSpeech";
 import { AnimatePresence, motion } from "motion/react";
 import { Segmented } from "@/components/ui/Segmented";
 import { toast } from "sonner";
@@ -26,6 +28,7 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
     ? { kind: mode.tx.kind, amount: numberToPad(mode.tx.amount), note: mode.tx.note, cat: mode.tx.category_id, date: mode.tx.occurred_on, replace: true }
     : { kind: mode.prefill?.kind ?? "expense", amount: mode.prefill?.amount ? numberToPad(mode.prefill.amount) : "", note: mode.prefill?.note ?? "",
         cat: mode.prefill?.category_id ?? null, date: mode.prefill?.occurred_on ?? today, replace: Boolean(mode.prefill?.amount) };
+  const isEditMode = mode.type === "edit";
   const [kind, setKind] = useState<Kind>(init.kind);
   const [amount, setAmount] = useState(init.amount);
   const [note, setNote] = useState(init.note);
@@ -44,15 +47,35 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
   const category = categories.find((c) => c.id === categoryId) ?? null;
 
   // Sugerir categoría a partir del detalle
+  // Si el detalle trae un monto (dictado del teclado o escrito: "súper 2 mil 300") y el teclado
+  // numérico no se usó, se completa solo. Al guardar, el número se quita del detalle.
+  const [amountFromText, setAmountFromText] = useState(false);
   function onNote(v: string) {
     setNote(v);
+    if (!isEditMode && (!amount || amountFromText)) {
+      const a = amountInText(v);
+      if (a) { setAmount(numberToPad(a)); setAmountFromText(true); }
+      else if (amountFromText) { setAmount(""); setAmountFromText(false); }
+    }
     if (categoryTouched) return;
     const c = detectCategory(v, categories.filter((x) => x.bucket !== "saving" || /ahorr|invers|plazo|fci/i.test(v)), history);
     if (c) { setCategoryId(c.id); setKind(c.kind); setAutoPicked(true); }
     else if (autoPicked) { setCategoryId(null); setAutoPicked(false); }
   }
 
+  // Dictado dentro de la hoja: completa monto, detalle, categoría, tipo y fecha
+  const voiceSupported = useSpeechSupported();
+  const speech = useSpeech((text) => {
+    const v = parseSpoken(text, categories, history, today);
+    if (v.amount) { setAmount(numberToPad(v.amount)); setReplaceOnType(true); setAmountFromText(false); }
+    setNote(v.note);
+    setKind(v.kind);
+    setDate(v.date);
+    if (v.category) { setCategoryId(v.category.id); setCategoryTouched(false); setAutoPicked(true); }
+  });
+
   function onKey(k: string) {
+    setAmountFromText(false);
     setAmount((v) => pressKey(replaceOnType && k !== "back" && k !== "dec" ? "" : v, k, allowDecimal));
     setReplaceOnType(false);
   }
@@ -66,9 +89,10 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
     const fallback = categories.find((c) => c.kind === kind && !c.archived && c.bucket !== "saving" && c.sort >= 990)
       ?? categories.find((c) => c.kind === kind && !c.archived);
     const finalCat = category && category.kind === kind ? category : fallback ?? null;
+    const cleanNote = amountFromText ? parseSpoken(note, categories, history, today).note : note.trim();
     const payload: NewTx = {
       kind, amount: value, category_id: finalCat?.id ?? null,
-      note: note.trim() || finalCat?.name || (kind === "expense" ? "Gasto" : "Ingreso"), occurred_on: date,
+      note: cleanNote || finalCat?.name || (kind === "expense" ? "Gasto" : "Ingreso"), occurred_on: date,
     };
     if (mode.type === "edit") {
       const ok = await hh.updateTx(mode.tx.id, payload);
@@ -185,12 +209,21 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
 
         {/* Detalle con detección de categoría */}
         <div className="relative">
+          {voiceSupported && (
+            <button type="button" onClick={() => (speech.status === "listening" ? speech.stop() : speech.start())}
+              aria-label={speech.status === "listening" ? "Terminar de dictar" : "Dictar el movimiento"}
+              className={`absolute top-1/2 left-1.5 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-[10px] transition-colors ${speech.status === "listening" ? "bg-gradient-accent text-white" : "text-accent hover:bg-accent-soft"}`}>
+              {speech.status === "listening" && <motion.span className="absolute inset-0 rounded-[10px] bg-accent/40" animate={{ scale: [1, 1.5], opacity: [0.6, 0] }} transition={{ duration: 1.2, repeat: Infinity }} />}
+              <Mic size={18} className="relative" />
+            </button>
+          )}
           <input
             ref={noteRef}
-            value={note}
+            value={speech.status === "listening" ? speech.interim : note}
             onChange={(e) => onNote(e.target.value)}
-            placeholder={kind === "expense" ? "¿En qué? Ej: súper, nafta" : "¿De dónde? Ej: sueldo"}
-            className={`field ${category ? "pr-32" : ""}`}
+            readOnly={speech.status === "listening"}
+            placeholder={speech.status === "listening" ? "Te escucho…" : kind === "expense" ? "¿En qué? Ej: súper, nafta" : "¿De dónde? Ej: sueldo"}
+            className={`field ${voiceSupported ? "pl-12" : ""} ${category ? "pr-32" : ""}`}
             maxLength={80}
             enterKeyHint="done"
             aria-label="Detalle"
@@ -202,6 +235,8 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
             </span>
           )}
         </div>
+        {speech.status === "error" && <p className="-mt-2 text-[12.5px] text-neg">{speechErrorText(speech.error)}</p>}
+        {amountFromText && <p className="-mt-2 flex items-center gap-1 text-[12.5px] text-accent"><Sparkles size={12} /> Tomé el monto del texto</p>}
 
         {/* Lo de siempre */}
         {!isEdit && frequent.length > 0 && !note && !amount && (

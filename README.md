@@ -30,6 +30,12 @@ App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presup
 - Hoy / Ayer / otra fecha. Deshacer después de guardar. "+" para guardar y cargar otro.
 - En la compu: tecla **N** abre la carga, números y Enter guardan.
 
+**Cargar por voz**
+- Widget **"Dictá un movimiento"** en el inicio, botón de micrófono dentro de la hoja de carga, **mantener apretado el +**, tecla **V** en la compu y atajo **"Dictar un gasto"** al mantener apretado el ícono instalado (Android).
+- Se dice todo junto: *"Gasté 12 mil en farmacia"*, *"Ayer 500 de gasolina"*, *"Cobré la quincena, 18 mil"*, *"Súper 2 mil 300 categoría supermercado"*.
+- Entiende números con palabras ("cuarenta y cinco mil", "un millón doscientos mil", "20 lucas"), gasto o ingreso, fechas ("ayer", "antier", "el viernes") y categoría (por palabras clave o diciendo "categoría …"). Muestra lo que entendió y se guarda con un toque (`src/lib/voice.ts`, con pruebas).
+- Usa la Web Speech API del navegador (Chrome, Edge, Safari). Donde no está disponible, el dictado del teclado del celular en el campo "¿En qué?" también completa el monto solo.
+
 **Fijos (servicios, suscripciones, alquiler, cuotas)**
 - Se cargan una vez. Cada mes aparecen en *Por pagar*, con aviso de vencimiento, y se marcan con **Pagar**.
 - Si el monto cambió (luz, gas), se toca el monto y se corrige.

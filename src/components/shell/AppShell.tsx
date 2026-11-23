@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
-import { ChartNoAxesCombined, ChevronLeft, ChevronRight, House, ListFilter, Plus, Settings, Target } from "lucide-react";
+import { ChartNoAxesCombined, ChevronLeft, ChevronRight, House, ListFilter, Mic, Plus, Settings, Target } from "lucide-react";
+import { VoiceSheet } from "@/components/voice/VoiceSheet";
 import { useHousehold } from "@/store/household";
 import { UiContext, type UiCtx } from "@/store/ui";
 import { TxSheet, type TxSheetMode } from "@/components/tx/TxSheet";
@@ -31,29 +32,42 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [mode, setMode] = useState<TxSheetMode>({ type: "new" });
   const [sheetKey, setSheetKey] = useState(0);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceKey, setVoiceKey] = useState(0);
   const current = indexOf(pathname);
 
   const ui = useMemo<UiCtx>(() => ({
     openNewTx: (prefill) => { setMode({ type: "new", prefill }); setSheetKey((k) => k + 1); setSheetOpen(true); },
     openEditTx: (tx) => { setMode({ type: "edit", tx }); setSheetKey((k) => k + 1); setSheetOpen(true); },
+    openVoice: () => { setVoiceKey((k) => k + 1); setVoiceOpen(true); },
   }), []);
 
-  // Atajo del ícono instalado: /?nuevo=1 abre la carga directo
+  // Atajos del ícono instalado: /?nuevo=1 abre la carga y /?voz=1 el dictado
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get("nuevo") === "1") {
-      ui.openNewTx();
-      url.searchParams.delete("nuevo");
-      window.history.replaceState(null, "", url.pathname + url.search);
-    }
+    const nuevo = url.searchParams.get("nuevo") === "1", voz = url.searchParams.get("voz") === "1";
+    if (!nuevo && !voz) return;
+    if (voz) ui.openVoice(); else ui.openNewTx();
+    url.searchParams.delete("nuevo"); url.searchParams.delete("voz");
+    window.history.replaceState(null, "", url.pathname + url.search);
   }, [ui]);
 
-  // Tecla "N" en la compu: nuevo movimiento
+  // Teclas en la compu: "N" nuevo movimiento, "V" dictar
   const onKey = useCallback((e: KeyboardEvent) => {
     const el = e.target as HTMLElement;
-    if (sheetOpen || e.metaKey || e.ctrlKey || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return;
+    if (sheetOpen || voiceOpen || e.metaKey || e.ctrlKey || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return;
     if (e.key === "n" || e.key === "N") { e.preventDefault(); ui.openNewTx(); }
-  }, [sheetOpen, ui]);
+    if (e.key === "v" || e.key === "V") { e.preventDefault(); ui.openVoice(); }
+  }, [sheetOpen, voiceOpen, ui]);
+
+  // Mantener apretado el botón + abre el dictado
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+  const pressStart = () => {
+    longPressed.current = false;
+    pressTimer.current = setTimeout(() => { longPressed.current = true; try { navigator.vibrate?.(18); } catch { /* sin vibración */ } ui.openVoice(); }, 450);
+  };
+  const pressEnd = () => { if (pressTimer.current) clearTimeout(pressTimer.current); };
   useEffect(() => { window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [onKey]);
 
   const isCurrent = ym === currentYM();
@@ -84,9 +98,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <LogoMark size={34} />
           <Wordmark />
         </Link>
-        <button type="button" onClick={() => ui.openNewTx()} className="btn btn-primary mb-5 w-full justify-between">
+        <button type="button" onClick={() => ui.openNewTx()} className="btn btn-primary mb-2 w-full justify-between">
           <span className="flex items-center gap-2"><Plus size={18} /> Nuevo movimiento</span>
           <kbd className="num rounded-md border border-white/25 px-1.5 text-[11px] font-medium text-white/80">N</kbd>
+        </button>
+        <button type="button" onClick={() => ui.openVoice()} className="btn mb-5 w-full justify-between">
+          <span className="flex items-center gap-2"><Mic size={17} className="text-accent" /> Dictar</span>
+          <kbd className="num rounded-md border border-line px-1.5 text-[11px] font-medium text-ink-3">V</kbd>
         </button>
         <p className="eyebrow mb-2 px-3">Navegación</p>
         <nav className="flex flex-col gap-0.5" aria-label="Secciones">
@@ -143,7 +161,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto grid max-w-[460px] grid-cols-5 items-center rounded-[24px] border border-line bg-surface/80 p-1.5 shadow-pop backdrop-blur-2xl">
           {NAV.slice(0, 2).map((n, i) => <DockItem key={n.href} {...n} on={i === current} type={i > current ? "nav-forward" : "nav-back"} />)}
           <div className="flex justify-center">
-            <motion.button type="button" onClick={() => ui.openNewTx()} aria-label="Nuevo movimiento" whileTap={{ scale: 0.88 }}
+            <motion.button type="button" aria-label="Nuevo movimiento (mantené apretado para dictar)" whileTap={{ scale: 0.88 }}
+              onClick={() => { if (!longPressed.current) ui.openNewTx(); }}
+              onPointerDown={pressStart} onPointerUp={pressEnd} onPointerLeave={pressEnd} onPointerCancel={pressEnd}
+              onContextMenu={(e) => e.preventDefault()}
               className="glow-pulse grid size-[52px] place-items-center rounded-[18px] bg-gradient-accent text-white">
               <motion.span animate={{ rotate: sheetOpen ? 45 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 22 }}>
                 <Plus size={26} strokeWidth={2.4} />
@@ -155,6 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
 
       <TxSheet key={sheetKey} open={sheetOpen} onOpenChange={setSheetOpen} mode={mode} />
+      <VoiceSheet key={`v${voiceKey}`} open={voiceOpen} onOpenChange={setVoiceOpen} onManual={(prefill) => ui.openNewTx(prefill)} />
     </UiContext>
   );
 }
