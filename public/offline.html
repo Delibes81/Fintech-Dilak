@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sin conexión · La Libreta</title>
+<style>
+  :root{--bg:#f3f4f8;--ink:#0f1424;--ink2:#545c70;--accent:#3346e0;color-scheme:light}
+  @media (prefers-color-scheme:dark){:root{--bg:#0a0d17;--ink:#eef0f6;--ink2:#a3aac0;--accent:#8d9bff;color-scheme:dark}}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px;box-sizing:border-box;text-align:center}
+  h1{font-size:22px;margin:16px 0 6px}
+  p{color:var(--ink2);margin:0 0 20px;max-width:320px}
+  button{background:var(--accent);color:#fff;border:0;border-radius:14px;height:46px;padding:0 22px;font-weight:700;font-size:16px}
+</style>
+</head>
+<body>
+  <main>
+    <img src="/icons/icon-192.png" width="72" height="72" alt="" style="border-radius:18px">
+    <h1>Estás sin conexión</h1>
+    <p>La libreta necesita internet para mostrar y guardar los movimientos de los dos. Apenas vuelva la señal, seguís donde estabas.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </main>
+</body>
+</html>

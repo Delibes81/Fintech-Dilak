@@ -1,0 +1,239 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Plus, Sparkles, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { Sheet } from "@/components/ui/Sheet";
+import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { AmountDisplay, AmountPad, numberToPad, padToNumber, pressKey } from "./AmountPad";
+import { useHousehold } from "@/store/household";
+import { NO_CENTS } from "@/lib/money";
+import { detectCategory, frequentEntries, rankCategories } from "@/lib/smart";
+import { dayLabel, shiftDays } from "@/lib/dates";
+import type { Kind, NewTx, Tx } from "@/lib/types";
+
+export type TxSheetMode = { type: "new"; prefill?: Partial<NewTx> } | { type: "edit"; tx: Tx };
+
+export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenChange: (o: boolean) => void; mode: TxSheetMode }) {
+  const hh = useHousehold();
+  const { categories, history, today, household } = hh;
+  const allowDecimal = !NO_CENTS.has(household.currency);
+
+  // El padre remonta la hoja (key nueva) cada vez que la abre: el estado nace de `mode`.
+  const init = mode.type === "edit"
+    ? { kind: mode.tx.kind, amount: numberToPad(mode.tx.amount), note: mode.tx.note, cat: mode.tx.category_id, date: mode.tx.occurred_on, replace: true }
+    : { kind: mode.prefill?.kind ?? "expense", amount: mode.prefill?.amount ? numberToPad(mode.prefill.amount) : "", note: mode.prefill?.note ?? "",
+        cat: mode.prefill?.category_id ?? null, date: mode.prefill?.occurred_on ?? today, replace: Boolean(mode.prefill?.amount) };
+  const [kind, setKind] = useState<Kind>(init.kind);
+  const [amount, setAmount] = useState(init.amount);
+  const [note, setNote] = useState(init.note);
+  const [categoryId, setCategoryId] = useState<string | null>(init.cat);
+  const [categoryTouched, setCategoryTouched] = useState(Boolean(init.cat));
+  const [autoPicked, setAutoPicked] = useState(false);
+  const [date, setDate] = useState(init.date);
+  const [replaceOnType, setReplaceOnType] = useState(init.replace);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const noteRef = useRef<HTMLInputElement>(null);
+
+  const ranked = useMemo(() => rankCategories(categories, history, kind), [categories, history, kind]);
+  const frequent = useMemo(() => frequentEntries(history).filter((f) => f.kind === kind), [history, kind]);
+  const category = categories.find((c) => c.id === categoryId) ?? null;
+
+  // Sugerir categoría a partir del detalle
+  function onNote(v: string) {
+    setNote(v);
+    if (categoryTouched) return;
+    const c = detectCategory(v, categories.filter((x) => x.bucket !== "saving" || /ahorr|invers|plazo|fci/i.test(v)), history);
+    if (c) { setCategoryId(c.id); setKind(c.kind); setAutoPicked(true); }
+    else if (autoPicked) { setCategoryId(null); setAutoPicked(false); }
+  }
+
+  function onKey(k: string) {
+    setAmount((v) => pressKey(replaceOnType && k !== "back" && k !== "dec" ? "" : v, k, allowDecimal));
+    setReplaceOnType(false);
+  }
+
+  const value = padToNumber(amount);
+  const canSave = value > 0 && !saving;
+
+  async function save(keepOpen = false) {
+    if (!canSave) return;
+    setSaving(true);
+    const fallback = categories.find((c) => c.kind === kind && !c.archived && c.bucket !== "saving" && c.sort >= 990)
+      ?? categories.find((c) => c.kind === kind && !c.archived);
+    const finalCat = category && category.kind === kind ? category : fallback ?? null;
+    const payload: NewTx = {
+      kind, amount: value, category_id: finalCat?.id ?? null,
+      note: note.trim() || finalCat?.name || (kind === "expense" ? "Gasto" : "Ingreso"), occurred_on: date,
+    };
+    if (mode.type === "edit") {
+      const ok = await hh.updateTx(mode.tx.id, payload);
+      setSaving(false);
+      if (ok) { toast.success("Cambios guardados"); onOpenChange(false); }
+      return;
+    }
+    const tx = await hh.addTx({ ...payload, ...(mode.prefill?.recurring_id && { recurring_id: mode.prefill.recurring_id }) });
+    setSaving(false);
+    if (!tx) return;
+    toast.success(`${kind === "expense" ? "Gasto" : "Ingreso"} guardado · ${hh.fmt(tx.amount)}`, {
+      description: tx.note,
+      action: { label: "Deshacer", onClick: () => { void hh.deleteTx(tx); } },
+    });
+    if (keepOpen) {
+      setAmount(""); setNote(""); setCategoryId(null); setCategoryTouched(false); setAutoPicked(false);
+    } else onOpenChange(false);
+  }
+
+  async function remove() {
+    if (mode.type !== "edit") return;
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    const t = mode.tx;
+    const ok = await hh.deleteTx(t);
+    if (ok) {
+      onOpenChange(false);
+      toast("Movimiento eliminado", { action: { label: "Deshacer", onClick: () => { void hh.restoreTx(t); } } });
+    }
+  }
+
+  // Teclado físico (compu): números, coma, borrar y Enter
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      const typing = el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT";
+      if (e.key === "Enter" && (!typing || el === noteRef.current)) { e.preventDefault(); void save(); return; }
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^\d$/.test(e.key)) onKey(e.key);
+      else if (e.key === "Backspace") onKey("back");
+      else if (e.key === "," || e.key === ".") onKey("dec");
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onDown);
+    return () => window.removeEventListener("keydown", onDown);
+  });
+
+  const yesterday = shiftDays(today, -1);
+  const isEdit = mode.type === "edit";
+
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={isEdit ? "Editar movimiento" : kind === "expense" ? "Nuevo gasto" : "Nuevo ingreso"}
+      hideTitle={!isEdit}
+      headerRight={isEdit ? (
+        <button type="button" className={`btn btn-sm ${confirmDelete ? "bg-neg text-white border-neg" : "btn-danger"}`} onClick={remove}>
+          <Trash2 size={16} /> {confirmDelete ? "¿Eliminar? Tocá de nuevo" : "Eliminar"}
+        </button>
+      ) : undefined}
+      footer={
+        <div className="flex gap-2">
+          {!isEdit && (
+            <button type="button" className="btn btn-lg w-14 shrink-0 px-0" disabled={!canSave} onClick={() => save(true)}
+              aria-label="Guardar y cargar otro" title="Guardar y cargar otro">
+              <Plus size={22} />
+            </button>
+          )}
+          <button type="button" className="btn btn-primary btn-lg flex-1" disabled={!canSave} onClick={() => save(false)}>
+            {saving ? "Guardando…" : isEdit ? "Guardar cambios" : value > 0 ? `Guardar ${hh.fmt(value)}` : "Ingresá el monto"}
+          </button>
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-3.5 [@media(max-height:720px)]:gap-2.5">
+        {/* Tipo y fecha */}
+        <div className="flex items-center gap-2">
+          <div className="seg" role="radiogroup" aria-label="Tipo">
+            {(["expense", "income"] as const).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={kind === k} data-on={kind === k}
+                onClick={() => { setKind(k); if (category && category.kind !== k) { setCategoryId(null); setCategoryTouched(false); } }}
+                className={kind === k ? (k === "expense" ? "!text-neg" : "!text-pos") : ""}>
+                {k === "expense" ? "Gasto" : "Ingreso"}
+              </button>
+            ))}
+          </div>
+          <div className="no-scrollbar ml-auto flex gap-1.5 overflow-x-auto">
+            <button type="button" className="chip h-[34px]" data-on={date === today} onClick={() => setDate(today)}>Hoy</button>
+            <button type="button" className="chip h-[34px]" data-on={date === yesterday} onClick={() => setDate(yesterday)}>Ayer</button>
+            <label className="chip relative h-[34px]" data-on={date !== today && date !== yesterday}>
+              <CalendarDays size={15} />
+              <span>{date !== today && date !== yesterday ? dayLabel(date, today) : "Otro"}</span>
+              <input type="date" value={date} max={shiftDays(today, 366)} onChange={(e) => e.target.value && setDate(e.target.value)}
+                className="absolute inset-0 cursor-pointer opacity-0" aria-label="Elegir fecha" />
+            </label>
+          </div>
+        </div>
+
+        {/* Monto */}
+        <AmountDisplay value={amount} currency={household.currency} tone={kind} />
+
+        {/* Detalle con detección de categoría */}
+        <div className="relative">
+          <input
+            ref={noteRef}
+            value={note}
+            onChange={(e) => onNote(e.target.value)}
+            placeholder={kind === "expense" ? "¿En qué? Ej: súper, nafta" : "¿De dónde? Ej: sueldo"}
+            className={`field ${category ? "pr-32" : ""}`}
+            maxLength={80}
+            enterKeyHint="done"
+            aria-label="Detalle"
+          />
+          {category && (
+            <span className="pointer-events-none absolute top-1/2 right-2 flex max-w-[45%] -translate-y-1/2 items-center gap-1 truncate rounded-full bg-surface px-2 py-1 text-[12.5px] font-semibold text-ink-2 shadow-sm">
+              {autoPicked && <Sparkles size={13} className="shrink-0 text-accent" aria-label="Sugerida" />}
+              <span className="truncate">{category.name}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Lo de siempre */}
+        {!isEdit && frequent.length > 0 && !note && !amount && (
+          <div>
+            <p className="eyebrow mb-2">Lo de siempre</p>
+            <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
+              {frequent.map((f) => {
+                const c = categories.find((x) => x.id === f.categoryId);
+                return (
+                  <button key={`${f.note}-${f.categoryId}`} type="button" className="chip h-10 shrink-0 pl-1.5"
+                    onClick={() => {
+                      setNote(f.note); setCategoryId(f.categoryId); setCategoryTouched(true); setAutoPicked(false);
+                      setAmount(numberToPad(f.lastAmount)); setReplaceOnType(true);
+                    }}>
+                    <CategoryIcon category={c} size={28} />
+                    {f.note}
+                    <span className="num text-[12.5px] font-medium text-ink-3">{hh.fmt(f.lastAmount)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Categorías */}
+        <div>
+          <p className="eyebrow mb-2 [@media(max-height:720px)]:sr-only">Categoría</p>
+          <div className="no-scrollbar -mx-5 grid auto-cols-[76px] grid-flow-col gap-x-1 overflow-x-auto px-5 [@media(min-height:900px)]:grid-rows-2 [@media(min-height:900px)]:gap-y-2" role="radiogroup" aria-label="Categoría">
+            {ranked.map((c) => {
+              const on = c.id === categoryId;
+              return (
+                <button key={c.id} type="button" role="radio" aria-checked={on}
+                  onClick={() => { setCategoryId(on ? null : c.id); setCategoryTouched(!on); setAutoPicked(false); }}
+                  className={`flex flex-col items-center gap-1.5 rounded-2xl px-1 py-2 transition-colors [@media(max-height:720px)]:gap-1 [@media(max-height:720px)]:py-1 ${on ? "bg-accent-soft" : "active:bg-surface-2"}`}>
+                  <span className={`rounded-[15px] ${on ? "ring-2 ring-accent ring-offset-2 ring-offset-[var(--accent-soft)]" : ""}`}>
+                    <CategoryIcon category={c} size={42} />
+                  </span>
+                  <span className={`line-clamp-2 text-center text-[12px] leading-tight font-semibold [@media(max-height:720px)]:line-clamp-1 ${on ? "text-accent" : "text-ink-2"}`}>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <AmountPad onKey={onKey} allowDecimal={allowDecimal} />
+      </div>
+    </Sheet>
+  );
+}
