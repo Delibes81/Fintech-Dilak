@@ -22,15 +22,18 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#07080d",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f5fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#07080d" },
+  ],
 };
 
-// Tema antes del primer pintado: oscuro por defecto; "light" o "system" si la persona lo eligió.
-const themeScript = `try{var t=localStorage.getItem('theme');var d=document.documentElement;if(t==='light')d.dataset.theme='light';else if(t==='system')delete d.dataset.theme;else d.dataset.theme='dark'}catch(e){}`;
+// Tema antes del primer pintado: claro por defecto; "dark" o "system" si la persona lo eligió.
+const themeScript = `try{var t=localStorage.getItem('theme');var d=document.documentElement;if(t==='dark')d.dataset.theme='dark';else if(t==='system')delete d.dataset.theme;else d.dataset.theme='light'}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" data-theme="dark" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html lang="es" data-theme="light" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

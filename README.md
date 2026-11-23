@@ -49,7 +49,7 @@ App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presup
 - **Consejos automáticos,** ordenados por urgencia: vencidos, presupuestos superados, categorías disparadas contra su promedio, déficit proyectado, etc.
 
 **Interfaz y animaciones**
-- Modo oscuro por defecto (claro y "según el sistema" en Ajustes). Fondo con cuadrícula y brillos, tarjeta principal con borde de luz que gira.
+- Modo claro por defecto (oscuro y "según el sistema" en Ajustes). Fondo con cuadrícula y brillos, tarjeta principal con borde de luz que gira.
 - Transiciones direccionales entre secciones (View Transitions del navegador vía React): la pantalla se desliza hacia la izquierda o la derecha según la pestaña.
 - Números que cuentan hasta su valor, curva de gasto del mes que se dibuja sola, barras y anillos que se llenan con resorte.
 - Indicadores que se deslizan (navegación, selectores, categoría elegida), dígitos del monto que entran animados, check de confirmación al guardar.

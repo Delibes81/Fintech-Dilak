@@ -25,8 +25,8 @@ export default function Ajustes() {
   const [pct, setPct] = useState(hh.household.savings_target_pct);
   // Esta pantalla solo se dibuja en el navegador (los datos cargan del lado del cliente)
   const [theme, setTheme] = useState<Theme>(() => {
-    try { const t = localStorage.getItem("theme"); if (t === "light" || t === "system") return t; } catch { /* sin storage */ }
-    return "dark"; // oscuro por defecto
+    try { const t = localStorage.getItem("theme"); if (t === "dark" || t === "system") return t; } catch { /* sin storage */ }
+    return "light"; // claro por defecto
   });
   const [catDraft, setCatDraft] = useState<CategoryDraft | null>(null);
   const [catOpen, setCatOpen] = useState(false);
@@ -124,8 +124,8 @@ export default function Ajustes() {
 
       <Section title="Apariencia">
         <Segmented full label="Tema" value={theme} onChange={applyTheme} options={[
-          { value: "dark", label: <><Moon size={15} /> Oscuro</> },
           { value: "light", label: <><Sun size={15} /> Claro</> },
+          { value: "dark", label: <><Moon size={15} /> Oscuro</> },
           { value: "system", label: <><Monitor size={15} /> Sistema</> },
         ]} />
       </Section>
