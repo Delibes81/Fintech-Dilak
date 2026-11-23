@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Plus, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, Check, Plus, Sparkles, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Segmented } from "@/components/ui/Segmented";
 import { toast } from "sonner";
 import { Sheet } from "@/components/ui/Sheet";
 import { CategoryIcon } from "@/components/ui/CategoryIcon";
@@ -34,6 +36,7 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
   const [replaceOnType, setReplaceOnType] = useState(init.replace);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
   const noteRef = useRef<HTMLInputElement>(null);
 
   const ranked = useMemo(() => rankCategories(categories, history, kind), [categories, history, kind]);
@@ -70,7 +73,7 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
     if (mode.type === "edit") {
       const ok = await hh.updateTx(mode.tx.id, payload);
       setSaving(false);
-      if (ok) { toast.success("Cambios guardados"); onOpenChange(false); }
+      if (ok) { toast.success("Cambios guardados"); flashDone(() => onOpenChange(false)); }
       return;
     }
     const tx = await hh.addTx({ ...payload, ...(mode.prefill?.recurring_id && { recurring_id: mode.prefill.recurring_id }) });
@@ -81,8 +84,14 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
       action: { label: "Deshacer", onClick: () => { void hh.deleteTx(tx); } },
     });
     if (keepOpen) {
-      setAmount(""); setNote(""); setCategoryId(null); setCategoryTouched(false); setAutoPicked(false);
-    } else onOpenChange(false);
+      flashDone(() => { setAmount(""); setNote(""); setCategoryId(null); setCategoryTouched(false); setAutoPicked(false); });
+    } else flashDone(() => onOpenChange(false));
+  }
+
+  // Confirmación visual breve (check animado) antes de cerrar o limpiar
+  function flashDone(then: () => void) {
+    setDone(true);
+    setTimeout(() => { setDone(false); then(); }, 420);
   }
 
   async function remove() {
@@ -136,8 +145,19 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
               <Plus size={22} />
             </button>
           )}
-          <button type="button" className="btn btn-primary btn-lg flex-1" disabled={!canSave} onClick={() => save(false)}>
-            {saving ? "Guardando…" : isEdit ? "Guardar cambios" : value > 0 ? `Guardar ${hh.fmt(value)}` : "Ingresá el monto"}
+          <button type="button" className="btn btn-primary btn-lg relative flex-1 overflow-hidden" disabled={!canSave && !done} onClick={() => save(false)}>
+            <AnimatePresence mode="wait" initial={false}>
+              {done ? (
+                <motion.span key="ok" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 20 }} className="flex items-center gap-2">
+                  <Check size={22} strokeWidth={3} /> Listo
+                </motion.span>
+              ) : (
+                <motion.span key="label" initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} className="num">
+                  {saving ? "Guardando…" : isEdit ? "Guardar cambios" : value > 0 ? `Guardar ${hh.fmt(value)}` : "Ingresá el monto"}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
         </div>
       }
@@ -145,15 +165,9 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
       <div className="flex flex-col gap-3.5 [@media(max-height:720px)]:gap-2.5">
         {/* Tipo y fecha */}
         <div className="flex items-center gap-2">
-          <div className="seg" role="radiogroup" aria-label="Tipo">
-            {(["expense", "income"] as const).map((k) => (
-              <button key={k} type="button" role="radio" aria-checked={kind === k} data-on={kind === k}
-                onClick={() => { setKind(k); if (category && category.kind !== k) { setCategoryId(null); setCategoryTouched(false); } }}
-                className={kind === k ? (k === "expense" ? "!text-neg" : "!text-pos") : ""}>
-                {k === "expense" ? "Gasto" : "Ingreso"}
-              </button>
-            ))}
-          </div>
+          <Segmented label="Tipo" value={kind}
+            onChange={(k) => { setKind(k); if (category && category.kind !== k) { setCategoryId(null); setCategoryTouched(false); } }}
+            options={[{ value: "expense", label: "Gasto", className: "!text-neg" }, { value: "income", label: "Ingreso", className: "!text-pos" }]} />
           <div className="no-scrollbar ml-auto flex gap-1.5 overflow-x-auto">
             <button type="button" className="chip h-[34px]" data-on={date === today} onClick={() => setDate(today)}>Hoy</button>
             <button type="button" className="chip h-[34px]" data-on={date === yesterday} onClick={() => setDate(yesterday)}>Ayer</button>
@@ -221,11 +235,12 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
               return (
                 <button key={c.id} type="button" role="radio" aria-checked={on}
                   onClick={() => { setCategoryId(on ? null : c.id); setCategoryTouched(!on); setAutoPicked(false); }}
-                  className={`flex flex-col items-center gap-1.5 rounded-2xl px-1 py-2 transition-colors [@media(max-height:720px)]:gap-1 [@media(max-height:720px)]:py-1 ${on ? "bg-accent-soft" : "active:bg-surface-2"}`}>
-                  <span className={`rounded-[15px] ${on ? "ring-2 ring-accent ring-offset-2 ring-offset-[var(--accent-soft)]" : ""}`}>
+                  className={`relative flex flex-col items-center gap-1.5 rounded-2xl px-1 py-2 transition-colors [@media(max-height:720px)]:gap-1 [@media(max-height:720px)]:py-1 ${on ? "" : "active:bg-surface-2"}`}>
+                  {on && <motion.span layoutId="cat-on" className="absolute inset-0 -z-10 rounded-2xl border border-accent/50 bg-accent-soft shadow-[0_0_20px_-6px_var(--accent)]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
+                  <motion.span animate={{ scale: on ? 1.08 : 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
                     <CategoryIcon category={c} size={42} />
-                  </span>
-                  <span className={`line-clamp-2 text-center text-[12px] leading-tight font-semibold [@media(max-height:720px)]:line-clamp-1 ${on ? "text-accent" : "text-ink-2"}`}>{c.name}</span>
+                  </motion.span>
+                  <span className={`line-clamp-2 text-center text-[11.5px] leading-tight font-medium [@media(max-height:720px)]:line-clamp-1 ${on ? "text-accent" : "text-ink-2"}`}>{c.name}</span>
                 </button>
               );
             })}

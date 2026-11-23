@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/Segmented";
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -67,10 +68,8 @@ export function RecurringSheet({ open, onOpenChange, draft }: { open: boolean; o
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="label">Frecuencia</span>
-          <div className="seg w-full [&>button]:flex-1">
-            <button type="button" data-on={frequency === "monthly"} onClick={() => setFrequency("monthly")}>Todos los meses</button>
-            <button type="button" data-on={frequency === "yearly"} onClick={() => setFrequency("yearly")}>Una vez al año</button>
-          </div>
+          <Segmented full label="Frecuencia" value={frequency} onChange={setFrequency}
+            options={[{ value: "monthly", label: "Todos los meses" }, { value: "yearly", label: "Una vez al año" }]} />
         </div>
         {frequency === "yearly" && (
           <label className="flex flex-col gap-1.5"><span className="label">Mes en que se paga</span>

@@ -7,7 +7,7 @@ interface BIPEvent extends Event { prompt: () => Promise<void>; userChoice: Prom
 /** Botón "Instalar app" (Android/Chrome/Edge) o instrucciones para iPhone. */
 export function InstallCard() {
   const [evt, setEvt] = useState<BIPEvent | null>(null);
-  // Se dibuja solo en el navegador (dentro de la libreta), así que puede leer window al iniciar.
+  // Se dibuja solo en el navegador (dentro de la app), así que puede leer window al iniciar.
   const [standalone] = useState(() => typeof window !== "undefined" &&
     (window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone === true));
   const [ios] = useState(() => typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent));
@@ -22,7 +22,7 @@ export function InstallCard() {
   if (evt)
     return (
       <button type="button" className="btn btn-primary w-full" onClick={async () => { await evt.prompt(); setEvt(null); }}>
-        <Download size={18} /> Instalar La Libreta
+        <Download size={18} /> Instalar Fintech Dilak
       </button>
     );
   if (ios)

@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, KeyRound } from "lucide-react";
+import { ArrowLeft, House, KeyRound } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { CURRENCIES } from "@/lib/money";
+import { AuthShell } from "@/components/brand/AuthShell";
 
 type Mode = "choose" | "create" | "join";
 
@@ -40,7 +41,7 @@ export default function Bienvenida() {
     setBusy(false);
     if (error) {
       setError(error.message.includes("invalid_code") ? "Ese código no existe. Revisalo con tu pareja (son 6 caracteres)."
-        : error.message.includes("household_full") ? "Esa libreta ya tiene el máximo de personas."
+        : error.message.includes("household_full") ? "Ese hogar ya tiene el máximo de personas."
         : "No pudimos completar el paso. Probá de nuevo.");
       return;
     }
@@ -49,23 +50,19 @@ export default function Bienvenida() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center px-[max(20px,env(safe-area-inset-left))] py-10">
-      <div className="w-full max-w-[440px]">
-        <div className="mb-6 text-center">
-          <img src="/icons/icon-192.png" alt="" width={60} height={60} className="mx-auto mb-4 size-[60px] rounded-[18px]" />
-          <h1 className="font-display text-[28px] font-extrabold tracking-tight">¡Bienvenidos!</h1>
-          <p className="mt-1 text-ink-2">Una libreta por familia. ¿La crean ahora o ya la creó tu pareja?</p>
-        </div>
+    <AuthShell title={<>Bienvenidos a <span className="text-gradient">Dilak</span></>}
+      subtitle="Un hogar por familia. ¿Lo crean ahora o ya lo creó tu pareja?">
+      <div>
 
         {mode === "choose" ? (
           <div className="flex flex-col gap-3">
-            <button type="button" onClick={() => setMode("create")} className="card flex items-center gap-4 p-5 text-left transition-transform active:scale-[0.99]">
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent text-accent-ink"><BookOpen size={24} /></span>
-              <span><span className="block font-display text-[18px] font-bold">Crear nuestra libreta</span><span className="block text-[14px] text-ink-2">Soy quien empieza. Después invito a mi pareja.</span></span>
+            <button type="button" onClick={() => setMode("create")} className="card flex items-center gap-4 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-accent/50 active:scale-[0.99]">
+              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-gradient-accent text-white shadow-glow"><House size={24} /></span>
+              <span><span className="block text-[18px] font-bold">Crear nuestro hogar</span><span className="block text-[14px] text-ink-2">Soy quien empieza. Después invito a mi pareja.</span></span>
             </button>
-            <button type="button" onClick={() => setMode("join")} className="card flex items-center gap-4 p-5 text-left transition-transform active:scale-[0.99]">
+            <button type="button" onClick={() => setMode("join")} className="card flex items-center gap-4 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-accent/50 active:scale-[0.99]">
               <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-accent-soft text-accent"><KeyRound size={24} /></span>
-              <span><span className="block font-display text-[18px] font-bold">Tengo un código</span><span className="block text-[14px] text-ink-2">Mi pareja ya la creó y me pasó el código.</span></span>
+              <span><span className="block text-[18px] font-bold">Tengo un código</span><span className="block text-[14px] text-ink-2">Mi pareja ya la creó y me pasó el código.</span></span>
             </button>
           </div>
         ) : (
@@ -76,7 +73,7 @@ export default function Bienvenida() {
             </label>
             {mode === "create" ? (
               <>
-                <label className="flex flex-col gap-1.5"><span className="label">Nombre de la libreta</span>
+                <label className="flex flex-col gap-1.5"><span className="label">Nombre del hogar</span>
                   <input className="field" value={hhName} onChange={(e) => setHhName(e.target.value)} placeholder="Ej: Casa Pérez" maxLength={40} />
                 </label>
                 <label className="flex flex-col gap-1.5"><span className="label">Moneda</span>
@@ -88,17 +85,17 @@ export default function Bienvenida() {
               </>
             ) : (
               <label className="flex flex-col gap-1.5"><span className="label">Código de invitación</span>
-                <input className="field num text-center font-display text-[24px] font-bold tracking-[0.35em] uppercase" value={code}
+                <input className="field num text-center text-[24px] font-bold tracking-[0.35em] uppercase" value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} placeholder="ABC123" autoCapitalize="characters" />
               </label>
             )}
             {error && <p role="alert" className="rounded-xl bg-neg-soft px-3 py-2 text-[14px] text-neg">{error}</p>}
             <button className="btn btn-primary btn-lg" disabled={busy || !name.trim() || (mode === "join" && code.length !== 6)}>
-              {busy ? "Un momento…" : mode === "create" ? "Crear libreta" : "Unirme"}
+              {busy ? "Un momento…" : mode === "create" ? "Crear hogar" : "Unirme"}
             </button>
           </form>
         )}
       </div>
-    </main>
+    </AuthShell>
   );
 }

@@ -3,16 +3,16 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "La Libreta de Casa",
-    short_name: "La Libreta",
-    description: "Las finanzas de la familia: gastos, ingresos, fijos, metas y consejos.",
+    name: "Fintech Dilak",
+    short_name: "Dilak",
+    description: "Finanzas familiares con inteligencia: gastos, ingresos, fijos, presupuestos, metas y consejos.",
     lang: "es",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f3f4f8",
-    theme_color: "#3346e0",
+    background_color: "#07080d",
+    theme_color: "#07080d",
     categories: ["finance", "productivity"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

@@ -1,5 +1,8 @@
 "use client";
 
+import { PageTransition } from "@/components/motion/PageTransition";
+import { Reveal, RevealItem } from "@/components/motion/Reveal";
+import { Segmented } from "@/components/ui/Segmented";
 import { useState } from "react";
 import { Copy, LogOut, Monitor, Moon, Plus, RefreshCw, Share2, Sun } from "lucide-react";
 import { toast } from "sonner";
@@ -20,7 +23,7 @@ export default function Ajustes() {
   const [name, setName] = useState(hh.me?.display_name ?? "");
   const [hhName, setHhName] = useState(hh.household.name);
   const [pct, setPct] = useState(hh.household.savings_target_pct);
-  // Esta pantalla solo se dibuja en el navegador (la libreta carga del lado del cliente)
+  // Esta pantalla solo se dibuja en el navegador (los datos cargan del lado del cliente)
   const [theme, setTheme] = useState<Theme>(() => {
     try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") return t; } catch { /* sin storage */ }
     return "system";
@@ -36,9 +39,9 @@ export default function Ajustes() {
     else document.documentElement.dataset.theme = t;
   }
 
-  const inviteText = `Sumate a nuestra libreta de finanzas "${hh.household.name}". Entrá a ${typeof window !== "undefined" ? window.location.origin : ""} y usá el código ${hh.household.invite_code}`;
+  const inviteText = `Sumate a nuestro hogar en Fintech Dilak "${hh.household.name}". Entrá a ${typeof window !== "undefined" ? window.location.origin : ""} y usá el código ${hh.household.invite_code}`;
   async function share() {
-    if (navigator.share) { try { await navigator.share({ title: "La Libreta de Casa", text: inviteText }); return; } catch { return; } }
+    if (navigator.share) { try { await navigator.share({ title: "Fintech Dilak", text: inviteText }); return; } catch { return; } }
     copy();
   }
   async function copy() {
@@ -52,8 +55,13 @@ export default function Ajustes() {
   const group = (k: "expense" | "income") => cats.filter((c) => c.kind === k);
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
-      <h1 className="font-display text-[26px] font-extrabold tracking-tight">Ajustes</h1>
+    <PageTransition>
+    <Reveal className="flex flex-col gap-4 pt-2 md:gap-5">
+      <RevealItem>
+        <p className="eyebrow">Cuenta</p>
+        <h1 className="mt-1 text-[28px] leading-tight font-semibold md:text-[32px]">Ajustes</h1>
+      </RevealItem>
+      <RevealItem className="flex flex-col gap-4 md:gap-5">
 
       <Section title="Tu perfil">
         <div className="flex items-center gap-3">
@@ -75,7 +83,7 @@ export default function Ajustes() {
       <Section title="Invitar a tu pareja">
         <p className="mb-3 text-[14px] text-ink-2">Que entre a la app con su email y elija <b className="text-ink">“Tengo un código”</b>. Van a ver y cargar lo mismo, en tiempo real.</p>
         <div className="flex items-center gap-2">
-          <div className="num flex h-14 flex-1 items-center justify-center rounded-2xl bg-surface-2 font-display text-[28px] font-extrabold tracking-[0.3em]">{hh.household.invite_code}</div>
+          <div className="num flex h-14 flex-1 items-center justify-center rounded-2xl bg-surface-2 text-[28px] font-semibold tracking-[0.3em]">{hh.household.invite_code}</div>
           <button type="button" className="btn h-14 w-14 px-0" onClick={copy} aria-label="Copiar código"><Copy size={20} /></button>
           <button type="button" className="btn btn-primary h-14 px-4" onClick={share}><Share2 size={18} /> Enviar</button>
         </div>
@@ -95,7 +103,7 @@ export default function Ajustes() {
 
       <Section title="Hogar">
         <div className="flex flex-col gap-4">
-          <label className="flex flex-col gap-1.5"><span className="label">Nombre de la libreta</span>
+          <label className="flex flex-col gap-1.5"><span className="label">Nombre del hogar</span>
             <input className="field" value={hhName} onChange={(e) => setHhName(e.target.value)} onBlur={() => hhName.trim() && hhName !== hh.household.name && hh.updateHousehold({ name: hhName.trim() })} maxLength={40} />
           </label>
           <label className="flex flex-col gap-1.5"><span className="label">Moneda</span>
@@ -104,7 +112,7 @@ export default function Ajustes() {
             </select>
           </label>
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between"><span className="label">Meta de ahorro mensual</span><span className="num font-display text-[18px] font-bold">{pct}%</span></div>
+            <div className="flex items-baseline justify-between"><span className="label">Meta de ahorro mensual</span><span className="num text-[18px] font-bold">{pct}%</span></div>
             <input type="range" min={5} max={50} step={5} value={pct} onChange={(e) => setPct(Number(e.target.value))}
               onPointerUp={() => pct !== hh.household.savings_target_pct && hh.updateHousehold({ savings_target_pct: pct })}
               onKeyUp={() => pct !== hh.household.savings_target_pct && hh.updateHousehold({ savings_target_pct: pct })}
@@ -133,13 +141,11 @@ export default function Ajustes() {
       </Section>
 
       <Section title="Apariencia">
-        <div className="seg w-full [&>button]:flex-1" role="radiogroup" aria-label="Tema">
-          {([["system", "Sistema", Monitor], ["light", "Claro", Sun], ["dark", "Oscuro", Moon]] as const).map(([t, label, Icon]) => (
-            <button key={t} type="button" role="radio" aria-checked={theme === t} data-on={theme === t} onClick={() => applyTheme(t)} className="flex items-center justify-center gap-1.5">
-              <Icon size={15} /> {label}
-            </button>
-          ))}
-        </div>
+        <Segmented full label="Tema" value={theme} onChange={applyTheme} options={[
+          { value: "dark", label: <><Moon size={15} /> Oscuro</> },
+          { value: "light", label: <><Sun size={15} /> Claro</> },
+          { value: "system", label: <><Monitor size={15} /> Sistema</> },
+        ]} />
       </Section>
 
       <Section title="Instalar en el teléfono">
@@ -147,9 +153,11 @@ export default function Ajustes() {
       </Section>
 
       <button type="button" className="btn btn-danger w-full" onClick={hh.signOut}><LogOut size={18} /> Cerrar sesión</button>
-      <p className="pb-4 text-center text-[12px] text-ink-3">La Libreta de Casa · sus datos viven en su propio proyecto de Supabase</p>
+      <p className="pb-4 text-center text-[12px] text-ink-3">Fintech Dilak · sus datos viven en su propio proyecto de Supabase</p>
 
       <CategorySheet key={catKey} open={catOpen} onOpenChange={setCatOpen} draft={catDraft} />
-    </div>
+      </RevealItem>
+    </Reveal>
+    </PageTransition>
   );
 }

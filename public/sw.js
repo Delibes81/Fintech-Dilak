@@ -1,11 +1,11 @@
-/* La Libreta de Casa — service worker
+/* Fintech Dilak — service worker
  * - Guarda la cáscara de la app para abrir rápido y funcionar con mala señal.
  * - Los datos siempre vienen de Supabase (nunca se cachean acá).
  * - Sin conexión, muestra /offline.html.
  */
-const VERSION = "v1";
-const STATIC = `libreta-static-${VERSION}`;
-const PAGES = `libreta-pages-${VERSION}`;
+const VERSION = "v2";
+const STATIC = `dilak-static-${VERSION}`;
+const PAGES = `dilak-pages-${VERSION}`;
 const PRECACHE = ["/offline.html", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

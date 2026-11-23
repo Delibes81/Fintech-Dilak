@@ -1,6 +1,10 @@
 "use client";
 
+import { PageTransition } from "@/components/motion/PageTransition";
+import { Reveal, RevealItem } from "@/components/motion/Reveal";
+import { Segmented } from "@/components/ui/Segmented";
 import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { PiggyBank, Plus, Repeat, ShieldCheck, Sparkles, Target, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useHousehold } from "@/store/household";
@@ -41,22 +45,30 @@ export default function Plan() {
   });
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
-      <div>
-        <h1 className="font-display text-[26px] font-extrabold tracking-tight">Plan</h1>
-        <p className="text-[14px] text-ink-2">Lo que se repite, cuánto quieren gastar y para qué están ahorrando.</p>
-      </div>
-      <div className="seg w-full [&>button]:flex-1" role="tablist">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button key={id} type="button" role="tab" aria-selected={tab === id} data-on={tab === id} onClick={() => setTab(id)} className="flex items-center justify-center gap-1.5">
-            <Icon size={16} className="max-[380px]:hidden" /> {label}
-          </button>
-        ))}
-      </div>
-      {tab === "fijos" && <FijosTab />}
-      {tab === "presupuestos" && <PresupuestosTab />}
-      {tab === "metas" && <MetasTab />}
-    </div>
+    <PageTransition>
+    <Reveal className="flex flex-col gap-4 pt-2 md:gap-5">
+      <RevealItem>
+        <p className="eyebrow">Planificación</p>
+        <h1 className="mt-1 text-[28px] leading-tight font-semibold md:text-[32px]">Plan <span className="text-gradient">financiero</span></h1>
+        <p className="mt-1 text-[14px] text-ink-2">Lo que se repite, cuánto quieren gastar y para qué están ahorrando.</p>
+      </RevealItem>
+      <RevealItem className="md:max-w-[520px]">
+        <Segmented full label="Sección" value={tab} onChange={setTab}
+          options={TABS.map(({ id, label, icon: Icon }) => ({ value: id, label: <><Icon size={15} className="max-[380px]:hidden" /> {label}</> }))} />
+      </RevealItem>
+      <RevealItem className="flex flex-col gap-4 md:gap-5">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={tab} className="flex flex-col gap-4 md:gap-5"
+          initial={{ opacity: 0, y: 10, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+          transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}>
+          {tab === "fijos" && <FijosTab />}
+          {tab === "presupuestos" && <PresupuestosTab />}
+          {tab === "metas" && <MetasTab />}
+        </motion.div>
+      </AnimatePresence>
+      </RevealItem>
+    </Reveal>
+    </PageTransition>
   );
 }
 
@@ -79,12 +91,12 @@ function FijosTab() {
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="card p-4"><p className="eyebrow">Fijos por mes</p><p className="num mt-1 font-display text-[22px] font-bold">{hh.fmt(r.monthlyFixed)}</p>
+        <div className="card p-4"><p className="eyebrow">Fijos por mes</p><p className="num mt-1 text-[22px] font-bold">{hh.fmt(r.monthlyFixed)}</p>
           <p className="text-[12.5px] text-ink-2">{hh.recurring.filter((x) => x.active).length} activos · anuales prorrateados</p></div>
         <div className="card p-4"><p className="eyebrow">Peso sobre ingresos</p>
-          <p className={`num mt-1 font-display text-[22px] font-bold ${r.fixedRatio != null && r.fixedRatio > 0.5 ? "text-warn" : ""}`}>{r.fixedRatio != null ? formatPct(r.fixedRatio) : "–"}</p>
+          <p className={`num mt-1 text-[22px] font-bold ${r.fixedRatio != null && r.fixedRatio > 0.5 ? "text-warn" : ""}`}>{r.fixedRatio != null ? formatPct(r.fixedRatio) : "–"}</p>
           <p className="text-[12.5px] text-ink-2">Lo sano: hasta 50%</p></div>
-        <div className="card col-span-2 p-4 sm:col-span-1"><p className="eyebrow">Suscripciones</p><p className="num mt-1 font-display text-[22px] font-bold">{hh.fmt(r.subscriptionsMonthly * 12)}<span className="text-[13px] font-semibold text-ink-3"> /año</span></p>
+        <div className="card col-span-2 p-4 sm:col-span-1"><p className="eyebrow">Suscripciones</p><p className="num mt-1 text-[22px] font-bold">{hh.fmt(r.subscriptionsMonthly * 12)}<span className="text-[13px] font-semibold text-ink-3"> /año</span></p>
           <p className="text-[12.5px] text-ink-2">{r.subscriptionsCount} activas · {hh.fmt(r.subscriptionsMonthly)} por mes</p></div>
       </div>
 
@@ -132,7 +144,7 @@ function RecRow({ id, onClick, when }: { id: string; onClick: () => void; when: 
           <span className="block truncate text-[13px] text-ink-2">{c?.name ?? "Sin categoría"} · {when}{x.active ? "" : " · Pausado"}</span>
         </span>
         <span className="text-right">
-          <span className="num block font-display font-bold">{hh.fmt(x.amount)}</span>
+          <span className="num block font-bold">{hh.fmt(x.amount)}</span>
           {x.frequency === "yearly" && <span className="num block text-[12px] text-ink-3">{hh.fmt(monthlyEquivalent(x))}/mes</span>}
         </span>
       </button>
@@ -186,8 +198,8 @@ function PresupuestosTab() {
             {([["need", 0.5], ["want", 0.3], ["saving", hh.household.savings_target_pct / 100]] as const).map(([b, p]) => (
               <div key={b} className="min-w-0 rounded-2xl bg-surface-2 p-3">
                 <p className="eyebrow truncate">{BUCKET_LABEL[b]}</p>
-                <p className="font-display text-[13px] font-bold text-ink-3">{formatPct(p)}</p>
-                <p className="num mt-1 truncate font-display text-[clamp(14px,4vw,17px)] font-bold">{formatCompact(roundNice(income * p), hh.household.currency)}</p>
+                <p className="text-[13px] font-bold text-ink-3">{formatPct(p)}</p>
+                <p className="num mt-1 truncate text-[clamp(14px,4vw,17px)] font-bold">{formatCompact(roundNice(income * p), hh.household.currency)}</p>
                 {b !== "saving" && <p className="num truncate text-[12px] text-ink-2">Puesto: {formatCompact(totalBy(b), hh.household.currency)}</p>}
               </div>
             ))}
@@ -261,7 +273,7 @@ function MetasTab() {
           <div className="flex items-start gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-white/15"><ShieldCheck size={22} /></span>
             <div>
-              <p className="font-display text-[19px] font-bold">Primero, el fondo de emergencia</p>
+              <p className="text-[19px] font-bold">Primero, el fondo de emergencia</p>
               <p className="mt-1 text-[14px] text-white/75">
                 Es plata que no se toca salvo imprevistos: una enfermedad, quedarse sin trabajo, un arreglo urgente. La recomendación es juntar entre 3 y 6 meses de gastos esenciales{suggested > 0 ? <>: para ustedes, unos <b className="text-white">{hh.fmt(suggested)}</b></> : ""}.
               </p>
@@ -296,7 +308,7 @@ function MetasTab() {
                       <p className="truncate font-semibold">{g.name}</p>
                       <p className="num text-[13px] text-ink-2">{hh.fmt(g.saved_amount)} de {hh.fmt(g.target_amount)}{g.target_date ? ` · para ${dayLabel(g.target_date, hh.today)}` : ""}</p>
                     </button>
-                    <span className="num font-display text-[18px] font-bold">{formatPct(p.progress)}</span>
+                    <span className="num text-[18px] font-bold">{formatPct(p.progress)}</span>
                   </div>
                   <div className="mt-3"><Progress value={g.saved_amount} max={g.target_amount} tone="pos" label={`Progreso de ${g.name}`} /></div>
                   <div className="mt-3 flex items-center gap-2">

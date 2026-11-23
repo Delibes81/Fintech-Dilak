@@ -1,8 +1,23 @@
-# La Libreta de Casa
+# Fintech Dilak
 
-App web instalable (PWA) para manejar las finanzas de la familia entre dos (o más) personas: gastos, ingresos, fijos, presupuestos, metas de ahorro y consejos automáticos.
+App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presupuestos, metas de ahorro y un motor que analiza todo como un asesor financiero.
 
-**Stack:** Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · Supabase (Auth + Postgres + Realtime) · Vercel.
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Framework | **Next.js 16** (App Router, Turbopack, Cache Components, Partial Prefetching) |
+| UI | **React 19.3** con **React Compiler** (memoización automática) |
+| Estilos | **Tailwind CSS 4.3** · tokens propios en CSS · utilidad `cn()` (clsx + tailwind-merge, patrón shadcn/ui) |
+| Animación | **Motion 14** (springs, layout animations, `layoutId`) · **React `<ViewTransition>`** para transiciones entre pantallas |
+| Tipografía | **Geist Sans + Geist Mono** (números en monoespaciada) |
+| Componentes | vaul (hojas) · sonner (notificaciones) · lucide-react (íconos) |
+| Datos | **Supabase**: Auth por código, Postgres con RLS, Realtime |
+| Calidad | TypeScript 6 · ESLint 9 · **Vitest 5** |
+| Paquetes | **pnpm 10 (obligatorio)** |
+| Deploy | Vercel |
+
+> **pnpm es obligatorio.** `package.json` fija `packageManager: pnpm@10.34.9` y un `preinstall` bloquea npm y yarn. Activalo con `corepack enable pnpm`.
 
 ---
 
@@ -33,6 +48,14 @@ App web instalable (PWA) para manejar las finanzas de la familia entre dos (o m�
 - **Puntaje de salud financiera (0–100):** ahorro 35, fijos 25, fondo de emergencia 25, presupuestos 15.
 - **Consejos automáticos,** ordenados por urgencia: vencidos, presupuestos superados, categorías disparadas contra su promedio, déficit proyectado, etc.
 
+**Interfaz y animaciones**
+- Modo oscuro por defecto (claro y "según el sistema" en Ajustes). Fondo con cuadrícula y brillos, tarjeta principal con borde de luz que gira.
+- Transiciones direccionales entre secciones (View Transitions del navegador vía React): la pantalla se desliza hacia la izquierda o la derecha según la pestaña.
+- Números que cuentan hasta su valor, curva de gasto del mes que se dibuja sola, barras y anillos que se llenan con resorte.
+- Indicadores que se deslizan (navegación, selectores, categoría elegida), dígitos del monto que entran animados, check de confirmación al guardar.
+- Tarjetas con halo que sigue al mouse en la compu. Todo respeta "reducir movimiento" del sistema.
+- Compu: barra lateral con atajo **N** para cargar. Celular: dock flotante con botón central.
+
 **Para los dos**
 - Un **hogar** con código de invitación. Todo se sincroniza **en tiempo real** entre los teléfonos.
 - Cada movimiento muestra quién lo cargó. Exportación a CSV (Excel / Google Sheets).
@@ -54,7 +77,7 @@ App web instalable (PWA) para manejar las finanzas de la familia entre dos (o m�
 4. **Authentication → Emails (Email Templates):** en **Magic Link** y en **Confirm signup**, poné el código en el cuerpo, por ejemplo:
 
    ```html
-   <h2>Tu código para La Libreta de Casa</h2>
+   <h2>Tu código para Fintech Dilak</h2>
    <p style="font-size:28px;font-weight:700;letter-spacing:6px">{{ .Token }}</p>
    <p>Vence en una hora. Si no lo pediste, ignorá este mail.</p>
    ```
@@ -66,9 +89,10 @@ App web instalable (PWA) para manejar las finanzas de la familia entre dos (o m�
 ### 2. Local
 
 ```bash
+corepack enable pnpm
 cp .env.example .env.local   # y completá las dos variables
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Abrí http://localhost:3000. (El service worker solo se activa en producción.)
@@ -76,7 +100,7 @@ Abrí http://localhost:3000. (El service worker solo se activa en producción.)
 ### 3. Vercel
 
 1. Subí el proyecto a un repositorio de GitHub.
-2. En [vercel.com/new](https://vercel.com/new) importá el repositorio (framework: Next.js, sin cambios).
+2. En [vercel.com/new](https://vercel.com/new) importá el repositorio. Vercel detecta Next.js y **pnpm** solo (por `pnpm-lock.yaml` y `packageManager`), sin tocar nada.
 3. En **Environment Variables** cargá:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (o `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
@@ -84,7 +108,7 @@ Abrí http://localhost:3000. (El service worker solo se activa en producción.)
 
 ### 4. Primer uso
 
-1. Una persona entra, recibe el código, elige **Crear nuestra libreta**.
+1. Una persona entra, recibe el código, elige **Crear nuestro hogar**.
 2. En **Ajustes → Invitar a tu pareja** aparece el código de 6 letras; se envía con **Enviar**.
 3. La otra persona entra con su email y elige **Tengo un código**.
 4. Instalar en el teléfono:
@@ -100,7 +124,7 @@ supabase/schema.sql          Tablas, RLS, funciones (crear/unirse al hogar, apor
 src/proxy.ts                 Refresca la sesión y manda a /login a quien no entró (Next 16: "proxy" = ex middleware)
 src/app/
   login/                     Ingreso con código por email
-  bienvenida/                Crear la libreta o unirse con código
+  bienvenida/                Crear el hogar o unirse con código
   (app)/                     La app (cáscara estática + datos del cliente)
     page.tsx                 Inicio: disponible por día, consejos, fijos, presupuestos, metas, últimos movimientos
     movimientos/             Búsqueda, filtros por tipo/persona/categoría, CSV
@@ -112,7 +136,10 @@ src/store/household.tsx      Estado central: carga, caché por mes, tiempo real 
 src/lib/finance/engine.ts    Motor financiero (funciones puras, con pruebas)
 src/lib/smart.ts             Detección de categoría y atajos frecuentes
 src/lib/{dates,money,types}.ts
-src/components/              UI: hojas (vaul), teclado de montos, listas, gráficos
+src/components/
+  motion/                    Reveal, NumberTicker, PageTransition (ViewTransition), SpotlightCard, MotionProvider
+  brand/                     Logo de Dilak y fondo animado de acceso
+  ui/ tx/ fijos/ plan/ charts/  Hojas, teclado de montos, listas y gráficos animados
 public/sw.js                 Service worker (cáscara offline; los datos nunca se cachean)
 ```
 
@@ -124,9 +151,9 @@ public/sw.js                 Service worker (cáscara offline; los datos nunca s
 ## Scripts
 
 ```bash
-npm run dev        # desarrollo
-npm run build      # build de producción
-npm test           # pruebas del motor financiero (Vitest)
-npm run lint
-npm run typecheck
+pnpm dev           # desarrollo
+pnpm build         # build de producción
+pnpm test          # pruebas del motor financiero (Vitest)
+pnpm lint
+pnpm typecheck
 ```

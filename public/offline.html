@@ -3,22 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Sin conexión · La Libreta</title>
+<meta name="theme-color" content="#07080d">
+<title>Sin conexión · Fintech Dilak</title>
 <style>
-  :root{--bg:#f3f4f8;--ink:#0f1424;--ink2:#545c70;--accent:#3346e0;color-scheme:light}
-  @media (prefers-color-scheme:dark){:root{--bg:#0a0d17;--ink:#eef0f6;--ink2:#a3aac0;--accent:#8d9bff;color-scheme:dark}}
-  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px;box-sizing:border-box;text-align:center}
-  h1{font-size:22px;margin:16px 0 6px}
-  p{color:var(--ink2);margin:0 0 20px;max-width:320px}
-  button{background:var(--accent);color:#fff;border:0;border-radius:14px;height:46px;padding:0 22px;font-weight:700;font-size:16px}
+  :root{--bg:#07080d;--ink:#f1f3fa;--ink2:#9aa2b8;--a:#8b7dff;--b:#38d6ff;color-scheme:dark}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;padding:24px;text-align:center;
+    background-image:radial-gradient(40rem 22rem at 20% -10%,rgb(139 125 255/.22),transparent 65%),radial-gradient(36rem 20rem at 100% 0%,rgb(56 214 255/.14),transparent 60%)}
+  h1{font-size:22px;margin:18px 0 6px;letter-spacing:-.02em}
+  p{color:var(--ink2);margin:0 auto 22px;max-width:330px}
+  button{background:linear-gradient(135deg,var(--a),#5fa8ff);color:#fff;border:0;border-radius:14px;height:46px;padding:0 22px;font-weight:600;font-size:15px;box-shadow:0 10px 30px -10px var(--a)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff6b85;box-shadow:0 0 12px #ff6b85;margin-right:8px;vertical-align:middle}
+  small{display:block;margin-top:18px;font:11px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:#5e667d}
 </style>
 </head>
 <body>
   <main>
     <img src="/icons/icon-192.png" width="72" height="72" alt="" style="border-radius:18px">
-    <h1>Estás sin conexión</h1>
-    <p>La libreta necesita internet para mostrar y guardar los movimientos de los dos. Apenas vuelva la señal, seguís donde estabas.</p>
+    <h1><span class="dot"></span>Sin conexión</h1>
+    <p>Fintech Dilak necesita internet para sincronizar los movimientos del hogar. Apenas vuelva la señal, seguís donde estabas.</p>
     <button onclick="location.reload()">Reintentar</button>
+    <small>Fintech Dilak</small>
   </main>
 </body>
 </html>

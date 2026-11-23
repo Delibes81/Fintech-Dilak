@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/Segmented";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { AmountDisplay, AmountPad, numberToPad, padToNumber, pressKey } from "@/components/tx/AmountPad";
@@ -26,10 +27,8 @@ export function AmountSheet({ open, onOpenChange, title, description, initial = 
       }>
       <div className="flex flex-col gap-4">
         {allowWithdraw && (
-          <div className="seg self-center">
-            <button type="button" data-on={!withdraw} onClick={() => setWithdraw(false)}>Aportar</button>
-            <button type="button" data-on={withdraw} onClick={() => setWithdraw(true)}>Retirar</button>
-          </div>
+          <Segmented className="self-center" label="Operación" value={withdraw ? "out" : "in"} onChange={(v) => setWithdraw(v === "out")}
+            options={[{ value: "in", label: "Aportar" }, { value: "out", label: "Retirar" }]} />
         )}
         <AmountDisplay value={value} currency={hh.household.currency} tone={withdraw ? "expense" : "income"} />
         <AmountPad allowDecimal={!NO_CENTS.has(hh.household.currency)} onKey={(k) => setValue((v) => pressKey(v, k, !NO_CENTS.has(hh.household.currency)))} />

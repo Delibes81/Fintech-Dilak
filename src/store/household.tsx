@@ -397,7 +397,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
     return (
       <div className="grid min-h-dvh place-items-center p-6 text-center">
         <div className="max-w-sm space-y-3">
-          <p className="font-display text-xl font-bold">No pudimos abrir la libreta</p>
+          <p className="text-xl font-bold">No pudimos abrir Fintech Dilak</p>
           <p className="text-ink-2">Revisá tu conexión a internet. Si el problema sigue, cerrá sesión y volvé a entrar.</p>
           <button className="btn btn-primary" onClick={() => location.reload()}>Reintentar</button>
         </div>

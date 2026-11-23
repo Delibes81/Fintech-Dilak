@@ -1,3 +1,5 @@
+"use client";
+import { motion } from "motion/react";
 import type { Bucket } from "@/lib/types";
 import { formatPct } from "@/lib/money";
 
@@ -22,7 +24,10 @@ export function BucketChart({ income, need, want, saved, targetSaving, fmt }: { 
     <div>
       <div className="flex h-4 w-full gap-[2px] overflow-hidden rounded-full bg-surface" role="img"
         aria-label={parts.map((p) => `${META[p.key].label} ${formatPct(total ? p.v / total : 0)}`).join(", ")}>
-        {parts.map((p) => p.v > 0 && <span key={p.key} style={{ width: `${(p.v / total) * 100}%`, background: META[p.key].color }} className="h-full first:rounded-l-full last:rounded-r-full" />)}
+        {parts.map((p, i) => p.v > 0 && (
+          <motion.span key={p.key} style={{ background: META[p.key].color }} className="h-full first:rounded-l-full last:rounded-r-full"
+            initial={{ width: 0 }} animate={{ width: `${(p.v / total) * 100}%` }} transition={{ type: "spring", stiffness: 90, damping: 20, delay: i * 0.08 }} />
+        ))}
       </div>
       <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
         {parts.map((p) => {
@@ -31,7 +36,7 @@ export function BucketChart({ income, need, want, saved, targetSaving, fmt }: { 
           return (
             <li key={p.key}>
               <p className="flex items-center gap-1.5 text-[13px] text-ink-2"><i className="size-2.5 rounded-[3px]" style={{ background: META[p.key].color }} />{META[p.key].label}</p>
-              <p className="num font-display text-[17px] font-bold">{formatPct(pct)}</p>
+              <p className="num text-[18px] font-semibold">{formatPct(pct)}</p>
               <p className="num text-[12.5px] text-ink-2">{fmt(p.v)}{p.target != null && <span className={off ? " text-warn" : ""}> · guía {formatPct(p.target)}</span>}</p>
             </li>
           );

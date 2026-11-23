@@ -1,4 +1,5 @@
 "use client";
+import { AnimatePresence, motion } from "motion/react";
 import { Delete } from "lucide-react";
 
 const LOCALE_SEP: Record<string, { th: string; dec: string; sym: string }> = {
@@ -17,14 +18,23 @@ export function AmountDisplay({ value, currency, tone }: { value: string; curren
   const intFmt = (int || "0").replace(/\B(?=(\d{3})+(?!\d))/g, th);
   const len = intFmt.length + (frac != null ? frac.length + 1 : 0);
   const size = len > 11 ? 32 : len > 8 ? 40 : 48;
+  const text = intFmt + (frac != null ? dec + frac : "");
+  const chars = text.split("");
   return (
-    <div className="flex items-baseline justify-center gap-1.5 py-1 [@media(max-height:720px)]:py-0" aria-live="polite">
-      <span className="font-display text-[22px] font-bold text-ink-3">{tone === "expense" ? "−" : "+"}{sym}</span>
-      <span
-        className={`num font-display font-extrabold tracking-[-0.03em] transition-colors ${value ? (tone === "expense" ? "text-ink" : "text-pos") : "text-ink-3"}`}
-        style={{ fontSize: size, lineHeight: 1.05 }}
-      >
-        {intFmt}{frac != null && <>{dec}{frac}</>}
+    <div className="flex items-baseline justify-center gap-1.5 py-1 [@media(max-height:720px)]:py-0" aria-live="polite" aria-label={`${sym} ${text}`}>
+      <span className="num text-[20px] font-medium text-ink-3">{tone === "expense" ? "−" : "+"}{sym}</span>
+      <span className={`num flex font-semibold tracking-[-0.05em] transition-colors ${value ? (tone === "expense" ? "text-ink" : "text-pos") : "text-ink-3"}`}
+        style={{ fontSize: size, lineHeight: 1.05 }} aria-hidden="true">
+        <AnimatePresence initial={false} mode="popLayout">
+          {chars.map((ch, i) => (
+            <motion.span key={`${chars.length - i}-${ch}`} layout="position"
+              initial={{ y: "0.5em", opacity: 0, filter: "blur(4px)" }} animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+              exit={{ y: "-0.4em", opacity: 0, filter: "blur(4px)", transition: { duration: 0.12 } }}
+              transition={{ type: "spring", stiffness: 600, damping: 32 }}>
+              {ch}
+            </motion.span>
+          ))}
+        </AnimatePresence>
       </span>
     </div>
   );
@@ -47,16 +57,17 @@ export function AmountPad({ onKey, allowDecimal }: { onKey: (k: string) => void;
   return (
     <div className="grid grid-cols-3 gap-2" role="group" aria-label="Teclado numérico">
       {keys.map((k) => (
-        <button
+        <motion.button
           key={k}
           type="button"
+          whileTap={{ scale: 0.9 }}
           onClick={() => onKey(k)}
           onContextMenu={(e) => { if (k === "back") { e.preventDefault(); onKey("clear"); } }}
           aria-label={k === "back" ? "Borrar" : k === "dec" ? "Coma decimal" : k === "000" ? "Tres ceros" : k}
-          className="num h-12 select-none [@media(max-height:720px)]:h-10 rounded-2xl bg-surface-2 font-display text-[22px] font-bold text-ink transition-[transform,background-color] active:scale-95 active:bg-surface-3"
+          className="num h-12 select-none rounded-2xl border border-line bg-surface-2 text-[21px] font-medium text-ink transition-colors active:bg-surface-3 [@media(max-height:720px)]:h-10"
         >
-          {k === "back" ? <Delete className="mx-auto" size={22} /> : k === "dec" ? "," : k}
-        </button>
+          {k === "back" ? <Delete className="mx-auto" size={21} /> : k === "dec" ? "," : k}
+        </motion.button>
       ))}
     </div>
   );

@@ -1,5 +1,5 @@
 /**
- * Motor financiero de la libreta.
+ * Motor financiero de Fintech Dilak.
  *
  * Funciones puras (sin React ni Supabase) que convierten los movimientos en
  * las métricas que usaría un asesor financiero de familia:

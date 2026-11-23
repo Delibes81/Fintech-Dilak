@@ -1,5 +1,7 @@
 "use client";
 
+import { PageTransition } from "@/components/motion/PageTransition";
+import { Reveal, RevealItem } from "@/components/motion/Reveal";
 import { useEffect, useMemo } from "react";
 import { useHousehold } from "@/store/household";
 import { useReport } from "@/hooks/useReport";
@@ -46,11 +48,14 @@ export default function Analisis() {
   const scoreLabel = health.score == null ? "Sin datos" : health.score >= 70 ? "Sólida" : health.score >= 45 ? "Mejorable" : "En riesgo";
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
-      <div>
-        <h1 className="font-display text-[26px] font-extrabold tracking-tight">Análisis</h1>
-        <p className="text-[14px] text-ink-2">Qué tan sanas están sus finanzas en {monthName(hh.ym)} y qué conviene ajustar.</p>
-      </div>
+    <PageTransition>
+    <Reveal className="flex flex-col gap-4 pt-2 md:gap-5">
+      <RevealItem>
+        <p className="eyebrow">Inteligencia financiera</p>
+        <h1 className="mt-1 text-[28px] leading-tight font-semibold md:text-[32px]">Análisis de <span className="text-gradient">{monthName(hh.ym)}</span></h1>
+        <p className="mt-1 text-[14px] text-ink-2">Qué tan sanas están sus finanzas y qué conviene ajustar.</p>
+      </RevealItem>
+      <RevealItem className="flex flex-col gap-4 md:gap-5">
 
       {/* Salud financiera */}
       <section className="card p-5">
@@ -58,7 +63,7 @@ export default function Analisis() {
           <ScoreRing score={health.score} size={92} stroke={9} />
           <div className="min-w-0">
             <p className="eyebrow">Salud financiera</p>
-            <p className="font-display text-[24px] font-extrabold tracking-tight">{scoreLabel}</p>
+            <p className="text-[24px] font-semibold tracking-tight">{scoreLabel}</p>
             <p className="text-[13.5px] text-ink-2">{health.score == null ? "Carguen el ingreso del mes para calcularla." : "Combina ahorro, peso de los fijos, fondo de emergencia y presupuestos."}</p>
           </div>
         </div>
@@ -118,7 +123,7 @@ export default function Analisis() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate text-[14.5px] font-semibold">{l.category.name}</span>
-                      <span className="num shrink-0 font-display font-bold">{hh.fmt(l.spent)}<span className="ml-1.5 text-[12px] font-semibold text-ink-3">{formatPct(r.consumption ? l.spent / r.consumption : 0)}</span></span>
+                      <span className="num shrink-0 font-bold">{hh.fmt(l.spent)}<span className="ml-1.5 text-[12px] font-semibold text-ink-3">{formatPct(r.consumption ? l.spent / r.consumption : 0)}</span></span>
                     </div>
                     <div className="relative mt-1.5 h-2 rounded-full bg-surface-2">
                       <div className="h-full rounded-full bg-accent" style={{ width: `${(l.spent / maxCat) * 100}%` }} />
@@ -150,8 +155,8 @@ export default function Analisis() {
                 <span className="h-full flex-1 rounded-r-full bg-accent/30" />
               </div>
               <dl className="mt-3 grid grid-cols-2 gap-2 text-[13.5px]">
-                <div><dt className="text-ink-2">Fijos pagados</dt><dd className="num font-display text-[17px] font-bold">{hh.fmt(r.fixedPaid)}</dd></div>
-                <div><dt className="text-ink-2">Del día a día</dt><dd className="num font-display text-[17px] font-bold">{hh.fmt(r.variable)}</dd></div>
+                <div><dt className="text-ink-2">Fijos pagados</dt><dd className="num text-[17px] font-bold">{hh.fmt(r.fixedPaid)}</dd></div>
+                <div><dt className="text-ink-2">Del día a día</dt><dd className="num text-[17px] font-bold">{hh.fmt(r.variable)}</dd></div>
               </dl>
               {r.phase === "current" && <p className="mt-2 text-[13px] text-ink-2">Proyección del gasto variable a fin de mes: <b className="text-ink">{hh.fmt(r.projectedVariable)}</b>.</p>}
             </>
@@ -177,7 +182,9 @@ export default function Analisis() {
           )}
         </Section>
       </div>
-    </div>
+      </RevealItem>
+    </Reveal>
+    </PageTransition>
   );
 }
 
@@ -185,7 +192,7 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: 
   return (
     <div className="card p-4">
       <p className="eyebrow">{label}</p>
-      <p className={`num mt-1 truncate font-display text-[20px] font-bold ${tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : ""}`}>{value}</p>
+      <p className={`num mt-1 truncate text-[20px] font-bold ${tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : ""}`}>{value}</p>
       {sub && <p className="truncate text-[12.5px] text-ink-2">{sub}</p>}
     </div>
   );

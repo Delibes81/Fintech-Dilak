@@ -21,12 +21,13 @@ export function Sheet({ open, onOpenChange, title, hideTitle, description, child
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-50" />
         <Drawer.Content
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[calc(100dvh-20px)] w-full max-w-[520px] flex-col rounded-t-[28px] bg-surface shadow-pop outline-none md:bottom-4 md:rounded-[28px]"
+          className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[calc(100dvh-20px)] w-full max-w-[520px] flex-col rounded-t-[28px] border border-b-0 border-line bg-surface shadow-pop outline-none md:bottom-4 md:rounded-[28px] md:border-b"
           aria-describedby={description ? undefined : undefined}
         >
-          <div className="mx-auto mt-2.5 mb-1 h-1.5 w-10 shrink-0 rounded-full bg-surface-3" aria-hidden="true" />
+          <div className="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-surface-3" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent" aria-hidden="true" />
           <div className={`flex items-center gap-3 px-5 pt-2 ${hideTitle ? "sr-only" : "pb-1"}`}>
-            <Drawer.Title className="font-display text-[19px] font-bold tracking-tight">{title}</Drawer.Title>
+            <Drawer.Title className="text-[18px] font-semibold tracking-tight">{title}</Drawer.Title>
             <div className="ml-auto flex items-center gap-2">{headerRight}</div>
           </div>
           {description ? (

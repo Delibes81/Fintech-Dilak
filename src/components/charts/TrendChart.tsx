@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { motion } from "motion/react";
 import { formatCompact } from "@/lib/money";
 import { monthLabel, monthShort } from "@/lib/dates";
 
@@ -17,10 +18,14 @@ export function TrendChart({ data, currency, fmt, selected }: { data: TrendPoint
   const gw = (W - L - R) / data.length, bw = Math.min(24, gw * 0.28);
   const ticks: number[] = [];
   for (let v = 0; v <= top + 1e-9; v += step) ticks.push(v);
-  const bar = (x: number, v: number, fill: string) => {
+  const bar = (x: number, v: number, fill: string, i: number) => {
     if (v <= 0) return null;
     const yy = y(v), h = y(0) - yy, r = Math.min(4, h);
-    return <path d={`M${x},${y(0)} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + bw - r} Q${x + bw},${yy} ${x + bw},${yy + r} V${y(0)} Z`} fill={fill} />;
+    return (
+      <motion.path d={`M${x},${y(0)} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + bw - r} Q${x + bw},${yy} ${x + bw},${yy + r} V${y(0)} Z`} fill={fill}
+        style={{ transformBox: "fill-box", transformOrigin: "bottom" }} initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 18, delay: 0.1 + i * 0.07 }} />
+    );
   };
   const h = hover != null ? data[hover] : null;
 
@@ -35,7 +40,7 @@ export function TrendChart({ data, currency, fmt, selected }: { data: TrendPoint
           {ticks.map((v) => (
             <g key={v}>
               <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeWidth={1} />
-              <text x={L - 8} y={y(v) + 4} textAnchor="end" fontSize={11} fill="var(--ink-3)">{formatCompact(v, currency)}</text>
+              <text x={L - 8} y={y(v) + 4} textAnchor="end" fontSize={10.5} fill="var(--ink-3)" style={{ fontFamily: "var(--font-mono)" }}>{formatCompact(v, currency)}</text>
             </g>
           ))}
           {data.map((d, i) => {
@@ -43,9 +48,9 @@ export function TrendChart({ data, currency, fmt, selected }: { data: TrendPoint
             const sel = d.ym === selected;
             return (
               <g key={d.ym} opacity={hover != null && hover !== i ? 0.45 : 1}>
-                {bar(cx - bw - 1.5, d.income, "var(--pos)")}
-                {bar(cx + 1.5, d.expense, "var(--neg)")}
-                <text x={cx} y={H - 9} textAnchor="middle" fontSize={12} fontWeight={sel ? 800 : 500} fill={sel ? "var(--ink)" : "var(--ink-3)"}>{monthShort(d.ym)}</text>
+                {bar(cx - bw - 1.5, d.income, "var(--pos)", i)}
+                {bar(cx + 1.5, d.expense, "var(--neg)", i)}
+                <text x={cx} y={H - 9} textAnchor="middle" fontSize={12} fontWeight={sel ? 700 : 400} style={{ fontFamily: "var(--font-mono)" }} fill={sel ? "var(--ink)" : "var(--ink-3)"}>{monthShort(d.ym)}</text>
                 <rect x={L + gw * i} y={T} width={gw} height={H - T - B} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(hover === i ? null : i)} style={{ cursor: "pointer" }} />
               </g>
             );
@@ -53,7 +58,7 @@ export function TrendChart({ data, currency, fmt, selected }: { data: TrendPoint
         </svg>
       </div>
       {h && (
-        <div className="pointer-events-none absolute top-8 right-2 rounded-xl bg-ink px-3 py-2 text-[12.5px] leading-relaxed text-bg shadow-pop">
+        <div className="pointer-events-none absolute top-8 right-2 rounded-xl border border-line bg-surface-2/95 px-3 py-2 text-[12.5px] leading-relaxed text-ink shadow-pop backdrop-blur">
           <p className="font-bold capitalize">{monthLabel(h.ym)}</p>
           {h.known ? (
             <>

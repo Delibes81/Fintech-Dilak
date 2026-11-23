@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Mail } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { isConfigured } from "@/lib/supabase/env";
+import { AuthShell } from "@/components/brand/AuthShell";
 
 /**
  * Ingreso con código de un solo uso enviado por email.
@@ -53,13 +54,9 @@ export default function Login() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center px-[max(20px,env(safe-area-inset-left))] py-10">
-      <div className="w-full max-w-[400px]">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/icons/icon-192.png" alt="" width={72} height={72} className="mb-5 size-[72px] rounded-[22px] shadow-pop" />
-          <h1 className="font-display text-[30px] font-extrabold tracking-tight">La Libreta de Casa</h1>
-          <p className="mt-2 max-w-[30ch] text-ink-2">Las finanzas de la familia en un solo lugar, con consejos para que les rinda más.</p>
-        </div>
+    <AuthShell title={<>Tus finanzas, <span className="text-gradient">en piloto automático</span></>}
+      subtitle="Gastos, fijos, metas y un asesor que analiza todo por vos. Para toda la familia.">
+      <div>
 
         {!isConfigured && (
           <p className="mb-4 rounded-2xl bg-warn-soft p-4 text-[14px] text-warn">
@@ -67,7 +64,7 @@ export default function Login() {
           </p>
         )}
 
-        <div className="card p-5">
+        <div className="card p-5 backdrop-blur">
           {step === "email" ? (
             <form onSubmit={sendCode} className="flex flex-col gap-3">
               <label className="flex flex-col gap-1.5">
@@ -89,7 +86,7 @@ export default function Login() {
               </div>
               <label className="flex flex-col gap-1.5">
                 <span className="label">Código</span>
-                <input ref={codeRef} className="field num text-center font-display text-[26px] font-bold tracking-[0.4em]" inputMode="numeric"
+                <input ref={codeRef} className="field num text-center text-[26px] font-bold tracking-[0.4em]" inputMode="numeric"
                   autoComplete="one-time-code" maxLength={10} value={code} placeholder="••••••"
                   onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 10); setCode(v); if (v.length === 6 || v.length === 8) void verify(undefined, v); }} />
               </label>
@@ -102,6 +99,6 @@ export default function Login() {
           {error && <p role="alert" className="mt-3 rounded-xl bg-neg-soft px-3 py-2 text-[14px] text-neg">{error}</p>}
         </div>
       </div>
-    </main>
+    </AuthShell>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/Segmented";
 import { useState } from "react";
 import { Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "sonner";
@@ -44,18 +45,12 @@ export function CategorySheet({ open, onOpenChange, draft }: { open: boolean; on
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre" maxLength={30} aria-label="Nombre" />
         </div>
         {!editing && (
-          <div className="seg w-full [&>button]:flex-1">
-            <button type="button" data-on={kind === "expense"} onClick={() => setKind("expense")}>Gasto</button>
-            <button type="button" data-on={kind === "income"} onClick={() => setKind("income")}>Ingreso</button>
-          </div>
+          <Segmented full label="Tipo" value={kind} onChange={setKind} options={[{ value: "expense", label: "Gasto" }, { value: "income", label: "Ingreso" }]} />
         )}
         {kind === "expense" && draft?.bucket !== "saving" && (
           <div className="flex flex-col gap-1.5">
             <span className="label">Tipo de gasto (regla 50/30/20)</span>
-            <div className="seg w-full [&>button]:flex-1">
-              <button type="button" data-on={bucket === "need"} onClick={() => setBucket("need")}>Necesidad</button>
-              <button type="button" data-on={bucket === "want"} onClick={() => setBucket("want")}>Deseo</button>
-            </div>
+            <Segmented full label="Tipo de gasto" value={bucket as "need" | "want"} onChange={setBucket} options={[{ value: "need", label: "Necesidad" }, { value: "want", label: "Deseo" }]} />
           </div>
         )}
         <div className="flex flex-col gap-1.5">
