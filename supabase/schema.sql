@@ -146,17 +146,16 @@ end $$;
 -- Funciones (RPC)
 -- ---------------------------------------------------------------------------
 
--- Crea el hogar, suma a quien lo crea y carga las categorías iniciales.
-create or replace function public.create_household(p_name text, p_display_name text, p_currency text default 'ARS')
-returns uuid language plpgsql security definer set search_path = public as $$
-declare hid uuid;
-begin
-  if auth.uid() is null then raise exception 'not_authenticated'; end if;
-  insert into households (name, currency) values (coalesce(nullif(trim(p_name), ''), 'Nuestra casa'), coalesce(p_currency, 'ARS'))
-    returning id into hid;
-  insert into household_members (household_id, user_id, display_name, color)
-    values (hid, auth.uid(), coalesce(trim(p_display_name), ''), 'blue');
+-- Funciones de versiones anteriores (registro abierto, invitaciones): ya no se usan.
+drop function if exists public.create_household(text, text, text);
+drop function if exists public.join_household(text, text);
+drop function if exists public.regenerate_invite_code(uuid);
 
+-- Categorías iniciales de un hogar (solo si todavía no tiene ninguna).
+create or replace function public.seed_categories(hid uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if exists (select 1 from categories where household_id = hid) then return; end if;
   insert into categories (household_id, name, kind, bucket, icon, color, sort, keywords) values
     (hid, 'Supermercado',       'expense', 'need',   'cart',       'green',   10, array['super','supermercado','mercado','almacen','chino','verduleria','verdura','fruta','carniceria','carne','coto','carrefour','jumbo','disco','vea','walmart','soriana','chedraui','despensa','compras','kiosco','panaderia','pan','dietetica']),
     (hid, 'Comida afuera',      'expense', 'want',   'utensils',   'orange',  20, array['restaurante','resto','cena','almuerzo','desayuno','merienda','delivery','rappi','pedidosya','pizza','empanadas','cafe','cafeteria','helado','bar','hamburguesa','burger','sushi','cerveza','birra','starbucks','comida','parrilla','tacos']),
@@ -178,22 +177,35 @@ begin
     (hid, 'Sueldo',             'income',  null,     'briefcase',  'green',   10, array['sueldo','salario','aguinaldo','nomina','quincena','haberes']),
     (hid, 'Extras / freelance', 'income',  null,     'sparkles',   'blue',    20, array['freelance','cliente','factura','proyecto','honorarios','changa','bono','comision']),
     (hid, 'Otros ingresos',     'income',  null,     'coins',      'slate',  990, array['venta','vendi','reintegro','devolucion','interes','intereses','rendimiento','cobre','cobro']);
-  return hid;
 end $$;
 
--- Suma a la persona al hogar que corresponde al código de invitación.
-create or replace function public.join_household(p_code text, p_display_name text)
-returns uuid language plpgsql security definer set search_path = public as $$
-declare hid uuid; n int;
+-- Configura el hogar con sus DOS únicos usuarios (se corre una vez desde el SQL Editor).
+-- Los usuarios se crean antes en Authentication → Users → Add user. Es idempotente:
+-- si el hogar ya existe lo reutiliza, y actualiza nombres sin duplicar nada.
+create or replace function public.setup_household(
+  p_name text, p_currency text, p_emails text[], p_names text[]
+) returns uuid language plpgsql security definer set search_path = public, auth as $$
+declare hid uuid; uid uuid; i int; colors text[] := array['blue', 'magenta', 'aqua', 'orange'];
 begin
-  if auth.uid() is null then raise exception 'not_authenticated'; end if;
-  select id into hid from households where invite_code = upper(trim(p_code));
-  if hid is null then raise exception 'invalid_code'; end if;
-  select count(*) into n from household_members where household_id = hid;
-  if n >= 8 then raise exception 'household_full'; end if;
-  insert into household_members (household_id, user_id, display_name, color)
-    values (hid, auth.uid(), coalesce(trim(p_display_name), ''), case when n % 2 = 0 then 'blue' else 'magenta' end)
-    on conflict (household_id, user_id) do update set display_name = excluded.display_name;
+  if coalesce(array_length(p_emails, 1), 0) = 0 or array_length(p_emails, 1) <> array_length(p_names, 1) then
+    raise exception 'Pasá la misma cantidad de emails y de nombres';
+  end if;
+  select id into hid from households order by created_at limit 1;
+  if hid is null then
+    insert into households (name, currency) values (coalesce(nullif(trim(p_name), ''), 'Nuestra casa'), coalesce(p_currency, 'ARS')) returning id into hid;
+  else
+    update households set name = coalesce(nullif(trim(p_name), ''), name), currency = coalesce(p_currency, currency) where id = hid;
+  end if;
+  for i in 1 .. array_length(p_emails, 1) loop
+    select id into uid from auth.users where lower(email) = lower(trim(p_emails[i]));
+    if uid is null then
+      raise exception 'No existe el usuario %. Crealo primero en Authentication → Users → Add user', p_emails[i];
+    end if;
+    insert into household_members (household_id, user_id, display_name, color)
+      values (hid, uid, trim(p_names[i]), colors[1 + ((i - 1) % 4)])
+      on conflict (household_id, user_id) do update set display_name = excluded.display_name;
+  end loop;
+  perform public.seed_categories(hid);
   return hid;
 end $$;
 
@@ -214,24 +226,10 @@ begin
   end if;
 end $$;
 
-create or replace function public.regenerate_invite_code(p_household uuid)
-returns text language plpgsql security definer set search_path = public as $$
-declare code text;
-begin
-  if not public.is_member(p_household) then raise exception 'not_found'; end if;
-  code := upper(substr(encode(gen_random_bytes(5), 'hex'), 1, 6));
-  update households set invite_code = code where id = p_household;
-  return code;
-end $$;
-
-revoke all on function public.create_household(text, text, text) from public, anon;
-revoke all on function public.join_household(text, text) from public, anon;
+revoke all on function public.seed_categories(uuid) from public, anon, authenticated;
+revoke all on function public.setup_household(text, text, text[], text[]) from public, anon, authenticated;
 revoke all on function public.contribute_goal(uuid, numeric, date) from public, anon;
-revoke all on function public.regenerate_invite_code(uuid) from public, anon;
-grant execute on function public.create_household(text, text, text) to authenticated;
-grant execute on function public.join_household(text, text) to authenticated;
 grant execute on function public.contribute_goal(uuid, numeric, date) to authenticated;
-grant execute on function public.regenerate_invite_code(uuid) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Tiempo real: los cambios de uno aparecen al instante en el teléfono del otro

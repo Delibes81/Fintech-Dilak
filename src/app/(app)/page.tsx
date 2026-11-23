@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, CalendarClock, CircleCheck, PiggyBank, Plus, ReceiptText, Repeat, ShieldCheck, Sparkles, Target, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarClock, CircleCheck, PiggyBank, Plus, ReceiptText, Repeat, ShieldCheck, Sparkles, Target } from "lucide-react";
 import { useHousehold } from "@/store/household";
 import { useUi } from "@/store/ui";
 import { useReport } from "@/hooks/useReport";
@@ -288,7 +288,6 @@ export default function Inicio() {
       { done: hh.recurring.length > 0, label: "Cargar los gastos fijos", hint: "Alquiler, servicios, suscripciones", href: "/plan", icon: CalendarClock },
       { done: curTx.some((t) => t.kind === "income"), label: "Cargar el ingreso del mes", hint: "Con eso se calcula cuánto pueden gastar", onClick: () => openNewTx({ kind: "income" }), icon: PiggyBank },
       { done: hh.goals.some((g) => g.kind === "emergency"), label: "Crear el fondo de emergencia", hint: "La base de unas finanzas sanas", href: "/plan?tab=metas", icon: ShieldCheck },
-      { done: hh.members.length > 1, label: "Sumar a tu pareja", hint: "Comparten todo en tiempo real", href: "/ajustes", icon: Users },
     ];
     const done = steps.filter((s) => s.done).length;
     if (done === steps.length || hh.ym !== hh.today.slice(0, 7)) return null;
@@ -296,7 +295,7 @@ export default function Inicio() {
       <RevealItem>
         <Section eyebrow="Configuración" title={<span className="flex items-center gap-2"><Sparkles size={16} className="text-accent" /> Primeros pasos</span>} aside={<span className="num">{done}/{steps.length}</span>}>
           <div className="mb-3"><Progress value={done} max={steps.length} height={4} label="Progreso de configuración" /></div>
-          <ul className="grid gap-1 md:grid-cols-2 md:gap-x-4">
+          <ul className="grid gap-1 md:grid-cols-3 md:gap-x-4">
             {steps.map((s) => {
               const Icon = s.icon;
               const inner = (

@@ -12,7 +12,7 @@ App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presup
 | Animación | **Motion 14** (springs, layout animations, `layoutId`) · **React `<ViewTransition>`** para transiciones entre pantallas |
 | Tipografía | **Geist Sans + Geist Mono** (números en monoespaciada) |
 | Componentes | vaul (hojas) · sonner (notificaciones) · lucide-react (íconos) |
-| Datos | **Supabase**: Auth por código, Postgres con RLS, Realtime |
+| Datos | **Supabase**: Auth con contraseña (2 usuarios fijos), Postgres con RLS, Realtime |
 | Calidad | TypeScript 6 · ESLint 9 · **Vitest 5** |
 | Paquetes | **pnpm 10 (obligatorio)** |
 | Deploy | Vercel |
@@ -57,12 +57,12 @@ App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presup
 - Compu: barra lateral con atajo **N** para cargar. Celular: dock flotante con botón central.
 
 **Para los dos**
-- Un **hogar** con código de invitación. Todo se sincroniza **en tiempo real** entre los teléfonos.
+- Un solo **hogar** compartido por los dos usuarios. Todo se sincroniza **en tiempo real** entre los teléfonos.
 - Cada movimiento muestra quién lo cargó. Exportación a CSV (Excel / Google Sheets).
 
 **App instalable**
 - Manifest, íconos (incluye *maskable*), service worker con página sin conexión y atajo "Cargar un gasto" desde el ícono.
-- Ingreso con **código por email** (no link mágico): en iPhone el link abre Safari en vez de la app instalada; el código funciona en todos lados.
+- **Acceso privado para dos personas:** pantalla con los dos perfiles + contraseña. Sin registro público; los emails se resuelven en el servidor.
 - Modo claro y oscuro (sistema, claro u oscuro).
 
 ---
@@ -72,25 +72,28 @@ App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presup
 ### 1. Supabase
 
 1. Creá un proyecto en [supabase.com](https://supabase.com).
-2. **SQL Editor → New query:** pegá todo `supabase/schema.sql` y apretá **Run**. Crea las tablas, la seguridad por hogar (RLS), las funciones y el tiempo real. Se puede volver a correr sin perder datos.
-3. **Authentication → Sign In / Providers → Email:** dejalo habilitado.
-4. **Authentication → Emails (Email Templates):** en **Magic Link** y en **Confirm signup**, poné el código en el cuerpo, por ejemplo:
+2. **SQL Editor → New query:** pegá todo `supabase/schema.sql` y apretá **Run**. Crea las tablas, la seguridad (RLS), las funciones y el tiempo real. Se puede volver a correr sin perder datos.
+3. **Cerrá el registro público:** *Authentication → Sign In / Providers →* desactivá **Allow new users to sign up**. Así nadie más puede crear cuentas.
+4. **Creá los dos usuarios:** *Authentication → Users → Add user → Create new user*. Para cada uno, poné email y contraseña y tildá **Auto Confirm User**. Una para Delibes y otra para Liliana. Los emails no reciben ningún correo; sirven solo como identificador.
+5. **Vinculalos al hogar:** en *SQL Editor* corré (con sus emails y nombres):
 
-   ```html
-   <h2>Tu código para Fintech Dilak</h2>
-   <p style="font-size:28px;font-weight:700;letter-spacing:6px">{{ .Token }}</p>
-   <p>Vence en una hora. Si no lo pediste, ignorá este mail.</p>
+   ```sql
+   select public.setup_household(
+     'Casa Dilak',                                        -- nombre del hogar
+     'ARS',                                               -- moneda
+     array['email-de-delibes@ejemplo.com', 'email-de-liliana@ejemplo.com'],
+     array['Delibes', 'Liliana']
+   );
    ```
 
-5. **Authentication → URL Configuration:** en *Site URL* poné la URL de Vercel (paso 3).
-6. **Recomendado:** el email que trae Supabase de fábrica tiene un límite muy bajo de envíos por hora. Configurá un SMTP propio (por ejemplo, Resend o Brevo, ambos con plan gratis) en **Authentication → Emails → SMTP Settings**.
-7. **Project Settings → API Keys:** copiá la *Project URL* y la *Publishable key* (o la *anon key* si tu proyecto la muestra).
+   Crea el hogar, los suma a los dos y carga las categorías iniciales. Se puede volver a correr (por ejemplo, para cambiar un nombre) sin duplicar nada.
+6. **Project Settings → API Keys:** copiá la *Project URL* y la *Publishable key* (o la *anon key* si tu proyecto la muestra).
 
 ### 2. Local
 
 ```bash
 corepack enable pnpm
-cp .env.example .env.local   # y completá las dos variables
+cp .env.example .env.local   # completá Supabase y los dos usuarios
 pnpm install
 pnpm dev
 ```
@@ -104,13 +107,17 @@ Abrí http://localhost:3000. (El service worker solo se activa en producción.)
 3. En **Environment Variables** cargá:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (o `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-4. **Deploy.** Copiá la URL final al *Site URL* de Supabase (paso 1.5).
+   - `DILAK_USER_1_NAME=Delibes` y `DILAK_USER_1_EMAIL` (tu email)
+   - `DILAK_USER_2_NAME=Liliana` y `DILAK_USER_2_EMAIL` (el de Liliana)
+
+   Los emails van en variables **privadas** (sin `NEXT_PUBLIC_`): nunca se publican en la página.
+4. **Deploy.**
 
 ### 4. Primer uso
 
-1. Una persona entra, recibe el código, elige **Crear nuestro hogar**.
-2. En **Ajustes → Invitar a tu pareja** aparece el código de 6 letras; se envía con **Enviar**.
-3. La otra persona entra con su email y elige **Tengo un código**.
+1. Abrí la app: aparecen las dos tarjetas (Delibes y Liliana). Tocá la tuya y poné tu contraseña.
+2. La sesión queda guardada en el dispositivo y la app recuerda el último perfil usado.
+3. Cada uno puede cambiar su contraseña en **Ajustes → Seguridad**. Si alguien la olvida, se cambia desde *Supabase → Authentication → Users*.
 4. Instalar en el teléfono:
    - **iPhone (Safari):** Compartir → *Agregar a inicio*.
    - **Android (Chrome):** menú → *Instalar app*. También aparece un botón en Ajustes.
@@ -120,17 +127,17 @@ Abrí http://localhost:3000. (El service worker solo se activa en producción.)
 ## Estructura
 
 ```
-supabase/schema.sql          Tablas, RLS, funciones (crear/unirse al hogar, aportes a metas) y realtime
+supabase/schema.sql          Tablas, RLS, funciones (setup_household, aportes a metas) y realtime
+src/lib/users.ts             Los dos usuarios (variables de entorno privadas)
 src/proxy.ts                 Refresca la sesión y manda a /login a quien no entró (Next 16: "proxy" = ex middleware)
 src/app/
-  login/                     Ingreso con código por email
-  bienvenida/                Crear el hogar o unirse con código
+  login/                     Elegir perfil + contraseña (Server Action; el email nunca va al navegador)
   (app)/                     La app (cáscara estática + datos del cliente)
     page.tsx                 Inicio: disponible por día, consejos, fijos, presupuestos, metas, últimos movimientos
     movimientos/             Búsqueda, filtros por tipo/persona/categoría, CSV
     plan/                    Fijos · Presupuestos (50/30/20 + sugerencias) · Metas
     analisis/                Salud financiera, recomendaciones, reparto del ingreso, categorías vs promedio, 6 meses
-    ajustes/                 Perfil, invitación, moneda, meta de ahorro, categorías, tema, instalar
+    ajustes/                 Perfil, seguridad (contraseña), moneda, meta de ahorro, categorías, tema, instalar
   manifest.ts                Manifest de la PWA
 src/store/household.tsx      Estado central: carga, caché por mes, tiempo real y acciones optimistas
 src/lib/finance/engine.ts    Motor financiero (funciones puras, con pruebas)

@@ -40,7 +40,6 @@ interface HouseholdCtx {
   contributeGoal: (g: Goal, amount: number) => Promise<boolean>;
   updateHousehold: (patch: Partial<Household>) => Promise<boolean>;
   updateMe: (patch: Partial<Pick<Member, "display_name" | "color">>) => Promise<boolean>;
-  regenerateCode: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -98,6 +97,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
   const router = useRouter();
   const [base, setBase] = useState<Base | null>(null);
   const [failed, setFailed] = useState(false);
+  const [noAccess, setNoAccess] = useState(false);
   const [months, setMonths] = useState<Record<string, Tx[] | undefined>>({});
   const [ym, setYm] = useState<string>("");
   const [today, setToday] = useState<string>("");
@@ -114,7 +114,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
       if (!user) { router.replace("/login"); return; }
       const { data: mem, error } = await sb.from("household_members").select("household_id").eq("user_id", user.id).limit(1);
       if (error) { if (alive) setFailed(true); return; }
-      if (!mem?.length) { router.replace("/bienvenida"); return; }
+      if (!mem?.length) { if (alive) setNoAccess(true); return; }
       const hid = mem[0].household_id as string;
       const [h, ms, cs, rs, gs] = await Promise.all([
         sb.from("households").select("*").eq("id", hid).single(),
@@ -379,12 +379,6 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
         return true;
       },
 
-      async regenerateCode() {
-        const { data, error } = await sb.rpc("regenerate_invite_code", { p_household: household.id });
-        if (error) { fail(error); return; }
-        setBase((b) => b && { ...b, household: { ...b.household, invite_code: String(data) } });
-      },
-
       async signOut() {
         await sb.auth.signOut();
         router.replace("/login");
@@ -393,6 +387,16 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
     };
   }, [base, months, ym, today, ensureMonths, putTx, dropTx, router]);
 
+  if (noAccess)
+    return (
+      <div className="grid min-h-dvh place-items-center p-6 text-center">
+        <div className="card max-w-sm space-y-3 p-6">
+          <p className="text-xl font-semibold">Esta cuenta no tiene acceso</p>
+          <p className="text-[14px] text-ink-2">Fintech Dilak es privado para los dos usuarios del hogar. Si sos uno de ellos, falta vincular tu cuenta (paso “setup_household” del README).</p>
+          <button className="btn btn-primary" onClick={async () => { await supabase().auth.signOut(); router.replace("/login"); }}>Cerrar sesión</button>
+        </div>
+      </div>
+    );
   if (failed)
     return (
       <div className="grid min-h-dvh place-items-center p-6 text-center">

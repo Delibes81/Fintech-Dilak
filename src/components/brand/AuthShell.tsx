@@ -25,7 +25,7 @@ export function AuthShell({ title, subtitle, children }: { title: ReactNode; sub
           <p className="mt-2 max-w-[34ch] text-[14.5px] text-ink-2">{subtitle}</p>
         </div>
         {children}
-        <p className="mt-6 text-center font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase">Cifrado · Sincronizado en tiempo real</p>
+        <p className="mt-6 text-center font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase">Acceso privado · Sincronizado en tiempo real</p>
       </motion.div>
     </main>
   );

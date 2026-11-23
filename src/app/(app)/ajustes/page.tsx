@@ -4,8 +4,8 @@ import { PageTransition } from "@/components/motion/PageTransition";
 import { Reveal, RevealItem } from "@/components/motion/Reveal";
 import { Segmented } from "@/components/ui/Segmented";
 import { useState } from "react";
-import { Copy, LogOut, Monitor, Moon, Plus, RefreshCw, Share2, Sun } from "lucide-react";
-import { toast } from "sonner";
+import { LogOut, Monitor, Moon, Plus, Sun } from "lucide-react";
+import { ChangePassword } from "@/components/account/ChangePassword";
 import { useHousehold } from "@/store/household";
 import { Section } from "@/components/ui/Section";
 import { Avatar } from "@/components/ui/Avatar";
@@ -25,8 +25,8 @@ export default function Ajustes() {
   const [pct, setPct] = useState(hh.household.savings_target_pct);
   // Esta pantalla solo se dibuja en el navegador (los datos cargan del lado del cliente)
   const [theme, setTheme] = useState<Theme>(() => {
-    try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") return t; } catch { /* sin storage */ }
-    return "system";
+    try { const t = localStorage.getItem("theme"); if (t === "light" || t === "system") return t; } catch { /* sin storage */ }
+    return "dark"; // oscuro por defecto
   });
   const [catDraft, setCatDraft] = useState<CategoryDraft | null>(null);
   const [catOpen, setCatOpen] = useState(false);
@@ -34,19 +34,9 @@ export default function Ajustes() {
 
   function applyTheme(t: Theme) {
     setTheme(t);
-    try { if (t === "system") localStorage.removeItem("theme"); else localStorage.setItem("theme", t); } catch { /* sin storage */ }
+    try { localStorage.setItem("theme", t); } catch { /* sin storage */ }
     if (t === "system") delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = t;
-  }
-
-  const inviteText = `Sumate a nuestro hogar en Fintech Dilak "${hh.household.name}". Entrá a ${typeof window !== "undefined" ? window.location.origin : ""} y usá el código ${hh.household.invite_code}`;
-  async function share() {
-    if (navigator.share) { try { await navigator.share({ title: "Fintech Dilak", text: inviteText }); return; } catch { return; } }
-    copy();
-  }
-  async function copy() {
-    try { await navigator.clipboard.writeText(hh.household.invite_code); toast.success("Código copiado"); }
-    catch { toast("Código: " + hh.household.invite_code); }
   }
 
   const [catKey, setCatKey] = useState(0);
@@ -77,28 +67,20 @@ export default function Ajustes() {
               className={`size-8 rounded-full ring-offset-2 ring-offset-[var(--surface)] ${hh.me?.color === c ? "ring-2 ring-ink" : ""}`} style={{ background: `var(--cat-${c})` }} />
           ))}
         </div>
-        <p className="mt-3 text-[13px] text-ink-3">{hh.email}</p>
       </Section>
 
-      <Section title="Invitar a tu pareja">
-        <p className="mb-3 text-[14px] text-ink-2">Que entre a la app con su email y elija <b className="text-ink">“Tengo un código”</b>. Van a ver y cargar lo mismo, en tiempo real.</p>
-        <div className="flex items-center gap-2">
-          <div className="num flex h-14 flex-1 items-center justify-center rounded-2xl bg-surface-2 text-[28px] font-semibold tracking-[0.3em]">{hh.household.invite_code}</div>
-          <button type="button" className="btn h-14 w-14 px-0" onClick={copy} aria-label="Copiar código"><Copy size={20} /></button>
-          <button type="button" className="btn btn-primary h-14 px-4" onClick={share}><Share2 size={18} /> Enviar</button>
-        </div>
-        <div className="mt-4 flex flex-col gap-2">
+      <Section eyebrow="Acceso" title="Seguridad">
+        <p className="mb-3 text-[13.5px] text-ink-2">Fintech Dilak es privado: solo estas dos cuentas pueden entrar y ven lo mismo en tiempo real.</p>
+        <div className="mb-4 flex flex-col gap-2">
           {hh.members.map((m) => (
-            <div key={m.user_id} className="flex items-center gap-3">
-              <Avatar member={m} size={32} />
-              <span className="font-semibold">{m.display_name || "Sin nombre"}</span>
-              {m.user_id === hh.userId && <span className="pill">Vos</span>}
+            <div key={m.user_id} className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/50 px-3 py-2">
+              <Avatar member={m} size={30} />
+              <span className="font-medium">{m.display_name || "Sin nombre"}</span>
+              {m.user_id === hh.userId && <span className="pill pill-accent ml-auto">Vos</span>}
             </div>
           ))}
         </div>
-        <button type="button" className="btn btn-sm btn-ghost mt-3 px-1" onClick={async () => { await hh.regenerateCode(); toast.success("Código nuevo generado. El anterior ya no sirve."); }}>
-          <RefreshCw size={15} /> Generar un código nuevo
-        </button>
+        <ChangePassword />
       </Section>
 
       <Section title="Hogar">
