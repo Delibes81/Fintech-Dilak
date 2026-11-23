@@ -248,7 +248,7 @@ export function HouseholdProvider({ children, fallback }: { children: ReactNode;
     if (!base || !ym) return null;
     const sb = supabase();
     const { household } = base;
-    const currency = household.currency || "ARS";
+    const currency = household.currency || "MXN";
     const fmt = (n: number, opts?: { sign?: boolean }) => formatMoney(n, currency, opts);
     const me = base.members.find((m) => m.user_id === base.userId);
     const memberName = (id: string | null) => {

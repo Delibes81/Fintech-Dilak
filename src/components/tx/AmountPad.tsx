@@ -52,7 +52,8 @@ export function pressKey(value: string, key: string, allowDecimal: boolean): str
   return value === "0" ? key : value + key;
 }
 
-export function AmountPad({ onKey, allowDecimal }: { onKey: (k: string) => void; allowDecimal: boolean }) {
+export function AmountPad({ onKey, allowDecimal, currency }: { onKey: (k: string) => void; allowDecimal: boolean; currency: string }) {
+  const { dec } = sepFor(currency);
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", allowDecimal ? "dec" : "000", "0", "back"];
   return (
     <div className="grid grid-cols-3 gap-2" role="group" aria-label="Teclado numérico">
@@ -63,10 +64,10 @@ export function AmountPad({ onKey, allowDecimal }: { onKey: (k: string) => void;
           whileTap={{ scale: 0.9 }}
           onClick={() => onKey(k)}
           onContextMenu={(e) => { if (k === "back") { e.preventDefault(); onKey("clear"); } }}
-          aria-label={k === "back" ? "Borrar" : k === "dec" ? "Coma decimal" : k === "000" ? "Tres ceros" : k}
+          aria-label={k === "back" ? "Borrar" : k === "dec" ? (dec === "." ? "Punto decimal" : "Coma decimal") : k === "000" ? "Tres ceros" : k}
           className="num h-12 select-none rounded-2xl border border-line bg-surface-2 text-[21px] font-medium text-ink transition-colors active:bg-surface-3 [@media(max-height:720px)]:h-10"
         >
-          {k === "back" ? <Delete className="mx-auto" size={21} /> : k === "dec" ? "," : k}
+          {k === "back" ? <Delete className="mx-auto" size={21} /> : k === "dec" ? dec : k}
         </motion.button>
       ))}
     </div>

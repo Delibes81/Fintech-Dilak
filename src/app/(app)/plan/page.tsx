@@ -289,7 +289,7 @@ function MetasTab() {
       {fund && months != null && (
         <div className="card flex items-center gap-3 p-4">
           <span className="grid size-10 place-items-center rounded-xl bg-pos-soft text-pos"><ShieldCheck size={20} /></span>
-          <p className="text-[14px] text-ink-2">El fondo cubre <b className="text-ink">{months.toLocaleString("es", { maximumFractionDigits: 1 })} meses</b> de gastos esenciales ({hh.fmt(r.essentialMonthly)} por mes). {months >= 6 ? "Están cubiertos: lo que sobre, a metas o inversión." : months >= 3 ? "Ya pasaron el mínimo. Sigan hasta 6." : "El mínimo recomendable son 3 meses."}</p>
+          <p className="text-[14px] text-ink-2">El fondo cubre <b className="text-ink">{months.toLocaleString("es-MX", { maximumFractionDigits: 1 })} meses</b> de gastos esenciales ({hh.fmt(r.essentialMonthly)} por mes). {months >= 6 ? "Están cubiertos: lo que sobre, a metas o inversión." : months >= 3 ? "Ya pasaron el mínimo. Sigan hasta 6." : "El mínimo recomendable son 3 meses."}</p>
         </div>
       )}
 

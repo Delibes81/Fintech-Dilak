@@ -222,7 +222,7 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
             value={speech.status === "listening" ? speech.interim : note}
             onChange={(e) => onNote(e.target.value)}
             readOnly={speech.status === "listening"}
-            placeholder={speech.status === "listening" ? "Te escucho…" : kind === "expense" ? "¿En qué? Ej: súper, nafta" : "¿De dónde? Ej: sueldo"}
+            placeholder={speech.status === "listening" ? "Te escucho…" : kind === "expense" ? "¿En qué? Ej: súper, gasolina" : "¿De dónde? Ej: sueldo"}
             className={`field ${voiceSupported ? "pl-12" : ""} ${category ? "pr-32" : ""}`}
             maxLength={80}
             enterKeyHint="done"
@@ -270,11 +270,12 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
               return (
                 <button key={c.id} type="button" role="radio" aria-checked={on}
                   onClick={() => { setCategoryId(on ? null : c.id); setCategoryTouched(!on); setAutoPicked(false); }}
-                  className={`relative flex flex-col items-center gap-1.5 rounded-2xl px-1 py-2 transition-colors [@media(max-height:720px)]:gap-1 [@media(max-height:720px)]:py-1 ${on ? "" : "active:bg-surface-2"}`}>
-                  {on && <motion.span layoutId="cat-on" className="absolute inset-0 -z-10 rounded-2xl border border-accent/50 bg-accent-soft shadow-[0_0_20px_-6px_var(--accent)]" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
-                  <motion.span animate={{ scale: on ? 1.08 : 1 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
+                  className="relative flex touch-manipulation flex-col items-center gap-1.5 rounded-2xl px-1 py-2 transition-transform duration-150 select-none active:scale-[0.94] [@media(max-height:720px)]:gap-1 [@media(max-height:720px)]:py-1">
+                  {/* Resaltado propio de cada categoría: solo opacidad y escala (GPU), sin medir layout */}
+                  <span aria-hidden="true" className={`pointer-events-none absolute inset-0 -z-10 rounded-2xl border border-accent/50 bg-accent-soft shadow-[0_0_20px_-6px_var(--accent)] transition-[opacity,scale] will-change-[opacity,scale] motion-reduce:transition-none ${on ? "scale-100 opacity-100 duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : "scale-90 opacity-0 duration-150 ease-out"}`} />
+                  <span className={`transition-transform motion-reduce:transition-none ${on ? "scale-[1.08] duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : "scale-100 duration-150 ease-out"}`}>
                     <CategoryIcon category={c} size={42} />
-                  </motion.span>
+                  </span>
                   <span className={`line-clamp-2 text-center text-[11.5px] leading-tight font-medium [@media(max-height:720px)]:line-clamp-1 ${on ? "text-accent" : "text-ink-2"}`}>{c.name}</span>
                 </button>
               );
@@ -282,7 +283,7 @@ export function TxSheet({ open, onOpenChange, mode }: { open: boolean; onOpenCha
           </div>
         </div>
 
-        <AmountPad onKey={onKey} allowDecimal={allowDecimal} />
+        <AmountPad onKey={onKey} allowDecimal={allowDecimal} currency={household.currency} />
       </div>
     </Sheet>
   );

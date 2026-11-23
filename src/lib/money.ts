@@ -4,8 +4,8 @@ const LOCALES: Record<string, string> = {
 };
 
 export const CURRENCIES = [
-  { code: "ARS", label: "Peso argentino" },
   { code: "MXN", label: "Peso mexicano" },
+  { code: "ARS", label: "Peso argentino" },
   { code: "CLP", label: "Peso chileno" },
   { code: "COP", label: "Peso colombiano" },
   { code: "UYU", label: "Peso uruguayo" },
@@ -48,7 +48,7 @@ export function formatMoney(n: number, currency: string, opts: { sign?: boolean 
 export const formatCompact = (n: number, currency: string) => nf(currency, "compact").format(n || 0);
 
 export const formatPct = (ratio: number, digits = 0) =>
-  `${(ratio * 100).toLocaleString("es", { maximumFractionDigits: digits, minimumFractionDigits: 0 })}%`;
+  `${(ratio * 100).toLocaleString("es-MX", { maximumFractionDigits: digits, minimumFractionDigits: 0 })}%`;
 
 /** Interpreta montos escritos a mano: "45.000", "45,50", "1.234,56", "45k". */
 export function parseAmount(raw: string): number {

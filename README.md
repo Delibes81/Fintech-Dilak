@@ -86,7 +86,7 @@ App web instalable (PWA) de finanzas familiares: gastos, ingresos, fijos, presup
    ```sql
    select public.setup_household(
      'Casa Dilak',                                        -- nombre del hogar
-     'ARS',                                               -- moneda
+     'MXN',                                               -- moneda (pesos mexicanos)
      array['email-de-delibes@ejemplo.com', 'email-de-liliana@ejemplo.com'],
      array['Delibes', 'Liliana']
    );

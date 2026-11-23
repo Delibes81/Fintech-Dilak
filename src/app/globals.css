@@ -274,4 +274,5 @@
 }
 
 /* Sheets (vaul) */
-[data-vaul-overlay] { background: rgb(3 4 10 / 0.6); backdrop-filter: blur(6px); }
+/* Sin backdrop-filter: difuminar la pantalla entera en cada frame traba las animaciones en el celular */
+[data-vaul-overlay] { background: rgb(3 4 10 / 0.68); }

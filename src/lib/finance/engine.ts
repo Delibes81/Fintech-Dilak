@@ -306,7 +306,7 @@ export function healthScore(r: MonthReport, goals: Goal[], targetPct: number): H
     { key: "fixed", label: "Gastos fijos", points: fixed, max: 25,
       detail: `${Math.round(fr * 100)}% de los ingresos (sano: hasta 50%)` },
     { key: "emergency", label: "Fondo de emergencia", points: emergency, max: 25,
-      detail: !fund ? "Todavía no lo armaron" : `${(months ?? 0).toLocaleString("es", { maximumFractionDigits: 1 })} de 6 meses de gastos esenciales` },
+      detail: !fund ? "Todavía no lo armaron" : `${(months ?? 0).toLocaleString("es-MX", { maximumFractionDigits: 1 })} de 6 meses de gastos esenciales` },
     { key: "budgets", label: "Presupuestos", points: budgets, max: 15,
       detail: budgeted.length ? `${within.length} de ${budgeted.length} categorías dentro del presupuesto` : "Sin presupuestos definidos" },
   ];
@@ -414,7 +414,7 @@ export function insights(r: MonthReport, goals: Goal[], targetPct: number, fmt: 
       body: `Es la base de todo: entre 3 y 6 meses de gastos esenciales. Para ustedes, unos ${fmt(roundNice(r.essentialMonthly * 6))}.` });
   else if (fund && months != null && months < 3)
     out.push({ id: "emergency-low", tone: "info", href: "/plan",
-      title: `El fondo de emergencia cubre ${months.toLocaleString("es", { maximumFractionDigits: 1 })} meses`,
+      title: `El fondo de emergencia cubre ${months.toLocaleString("es-MX", { maximumFractionDigits: 1 })} meses`,
       body: "El mínimo recomendable son 3 meses. Un aporte automático cada vez que cobran es la forma más simple de llegar." });
 
   return out.sort((a, b) => TONE_ORDER[a.tone] - TONE_ORDER[b.tone]);

@@ -14,7 +14,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.households (
   id                 uuid primary key default gen_random_uuid(),
   name               text not null default 'Nuestra casa',
-  currency           text not null default 'ARS',
+  currency           text not null default 'MXN',
   savings_target_pct int  not null default 20 check (savings_target_pct between 0 and 90),
   invite_code        text not null unique default upper(substr(encode(gen_random_bytes(5), 'hex'), 1, 6)),
   created_at         timestamptz not null default now()
@@ -122,6 +122,9 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.household_members where household_id = hid and user_id = auth.uid());
 $$;
 
+-- Moneda por defecto: pesos mexicanos (también para bases creadas antes con otra)
+alter table public.households alter column currency set default 'MXN';
+
 alter table public.households        enable row level security;
 alter table public.household_members enable row level security;
 alter table public.categories        enable row level security;
@@ -202,7 +205,7 @@ begin
   end if;
   select id into hid from households order by created_at limit 1;
   if hid is null then
-    insert into households (name, currency) values (coalesce(nullif(trim(p_name), ''), 'Nuestra casa'), coalesce(p_currency, 'ARS')) returning id into hid;
+    insert into households (name, currency) values (coalesce(nullif(trim(p_name), ''), 'Nuestra casa'), coalesce(p_currency, 'MXN')) returning id into hid;
   else
     update households set name = coalesce(nullif(trim(p_name), ''), name), currency = coalesce(p_currency, currency) where id = hid;
   end if;

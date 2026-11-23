@@ -31,7 +31,7 @@ export function AmountSheet({ open, onOpenChange, title, description, initial = 
             options={[{ value: "in", label: "Aportar" }, { value: "out", label: "Retirar" }]} />
         )}
         <AmountDisplay value={value} currency={hh.household.currency} tone={withdraw ? "expense" : "income"} />
-        <AmountPad allowDecimal={!NO_CENTS.has(hh.household.currency)} onKey={(k) => setValue((v) => pressKey(v, k, !NO_CENTS.has(hh.household.currency)))} />
+        <AmountPad currency={hh.household.currency} allowDecimal={!NO_CENTS.has(hh.household.currency)} onKey={(k) => setValue((v) => pressKey(v, k, !NO_CENTS.has(hh.household.currency)))} />
       </div>
     </Sheet>
   );
