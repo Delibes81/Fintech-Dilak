@@ -16,11 +16,12 @@ import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { BucketChart } from "@/components/charts/BucketChart";
 import { addMonths, monthName } from "@/lib/dates";
 import { formatPct } from "@/lib/money";
-import { ChartNoAxesColumn } from "lucide-react";
+import { Bike, ChartNoAxesColumn } from "lucide-react";
+import type { FoodAppsSummary } from "@/lib/finance/foodApps";
 
 export default function Analisis() {
   const hh = useHousehold();
-  const { loading, report: r, health, tips } = useReport();
+  const { loading, report: r, health, tips, food } = useReport();
 
   const trendMonths = useMemo(() => Array.from({ length: 6 }, (_, i) => addMonths(hh.ym, i - 5)), [hh.ym]);
   const { ensureMonths } = hh;
@@ -142,6 +143,10 @@ export default function Analisis() {
         {cats.some((l) => l.avg3) && <p className="mt-4 flex items-center gap-1.5 text-[12.5px] text-ink-3"><span className="inline-block h-3 w-0.5 rounded bg-ink/60" /> marca el promedio de los últimos 3 meses</p>}
       </Section>
 
+      <Section title="Comida a domicilio" aside="Uber Eats · Rappi · DiDi Food">
+        <FoodApps food={food} fmt={hh.fmt} month={monthName(hh.ym)} />
+      </Section>
+
       <Section title="Últimos 6 meses">
         <TrendChart data={trend} currency={hh.household.currency} fmt={hh.fmt} selected={hh.ym} />
       </Section>
@@ -194,6 +199,61 @@ function Kpi({ label, value, sub, tone }: { label: string; value: string; sub?: 
       <p className="eyebrow">{label}</p>
       <p className={`num mt-1 truncate text-[20px] font-bold ${tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : ""}`}>{value}</p>
       {sub && <p className="truncate text-[12.5px] text-ink-2">{sub}</p>}
+    </div>
+  );
+}
+
+/** Cuánto se va en cada app de comida a domicilio, con ticket promedio, comparación y proyección anual. */
+function FoodApps({ food, fmt, month }: { food: FoodAppsSummary; fmt: (n: number) => string; month: string }) {
+  if (food.orders === 0) {
+    return (
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-3"><Bike size={20} /></span>
+        <p className="text-[14px] text-ink-2">
+          {food.avgMonthly ? <>Sin pedidos en {month}. Su promedio de los meses anteriores es <b className="text-ink">{fmt(food.avgMonthly)}</b>.</>
+            : <>Cuando carguen pedidos con el nombre de la app (por ejemplo <i>“Uber Eats 180”</i> o <i>“Rappi tacos”</i>) van a ver acá cuánto se va en cada una.</>}
+        </p>
+      </div>
+    );
+  }
+  const max = Math.max(1, ...food.byApp.map((a) => a.total));
+  const vsAvg = food.avgMonthly ? (food.projected ?? food.total) / food.avgMonthly - 1 : null;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <div>
+          <p className="num text-[30px] leading-none font-semibold tracking-[-0.04em]">{fmt(food.total)}</p>
+          <p className="mt-1.5 text-[13px] text-ink-2">
+            {food.orders} {food.orders === 1 ? "pedido" : "pedidos"} · ticket promedio <b className="text-ink">{fmt(food.avgTicket)}</b>
+            {food.share != null && <> · {formatPct(food.share)} de lo que gastan en comer</>}
+          </p>
+        </div>
+        {vsAvg != null && (
+          <span className={`pill ${vsAvg > 0.15 ? "pill-neg" : vsAvg < -0.1 ? "pill-pos" : ""}`}>
+            {vsAvg >= 0 ? "+" : ""}{formatPct(vsAvg)} vs. promedio
+          </span>
+        )}
+      </div>
+      <ul className="flex flex-col gap-3">
+        {food.byApp.map((a) => (
+          <li key={a.key}>
+            <div className="mb-1.5 flex items-baseline justify-between gap-2">
+              <span className="flex items-center gap-2 text-[14.5px] font-semibold">
+                <span className="size-2.5 rounded-full" style={{ background: `var(--cat-${a.color})` }} />{a.name}
+              </span>
+              <span className="num text-[13px] text-ink-2"><b className="text-ink">{fmt(a.total)}</b> · {a.orders} {a.orders === 1 ? "pedido" : "pedidos"}</span>
+            </div>
+            <div className="h-2 rounded-full bg-surface-2">
+              <div className="h-full rounded-full" style={{ width: `${(a.total / max) * 100}%`, background: `var(--cat-${a.color})` }} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <dl className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[13px] sm:grid-cols-3">
+        {food.projected != null && <div><dt className="text-ink-2">Cierre estimado</dt><dd className="num text-[16px] font-bold">{fmt(food.projected)}</dd></div>}
+        {food.avgMonthly != null && <div><dt className="text-ink-2">Promedio mensual</dt><dd className="num text-[16px] font-bold">{fmt(food.avgMonthly)}</dd></div>}
+        <div><dt className="text-ink-2">Al año, a este ritmo</dt><dd className="num text-[16px] font-bold">{fmt(food.yearly)}</dd></div>
+      </dl>
     </div>
   );
 }

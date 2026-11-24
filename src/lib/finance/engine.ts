@@ -325,7 +325,7 @@ export interface Insight {
 }
 
 type Fmt = (n: number) => string;
-const TONE_ORDER: Record<Tone, number> = { critical: 0, warning: 1, info: 2, good: 3 };
+export const TONE_ORDER: Record<Tone, number> = { critical: 0, warning: 1, info: 2, good: 3 };
 
 export function insights(r: MonthReport, goals: Goal[], targetPct: number, fmt: Fmt): Insight[] {
   const out: Insight[] = [];
