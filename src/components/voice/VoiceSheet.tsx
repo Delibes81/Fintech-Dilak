@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useState, type Ref } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Keyboard, Mic, RotateCcw, Square } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +28,10 @@ export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
   const [result, setResult] = useState<VoiceResult | null>(null);
   const [saving, setSaving] = useState(false);
   const [example, setExample] = useState(0);
+  // Respaldo: dictar con el micrófono del teclado (en el iPhone instalado es lo más confiable)
+  const [typing, setTyping] = useState(false);
+  const [typed, setTyped] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const speech = useSpeech((text) => setResult(parseSpoken(text, hh.categories, hh.history, hh.today)));
 
   // Arranca desde el toque que abre la hoja (no en un efecto posterior): así el teléfono abre el micrófono
@@ -36,6 +40,8 @@ export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
     listen(auto: boolean) {
       setResult(null);
       setSaving(false);
+      setTyping(false);
+      setTyped("");
       if (supported) start({ auto });
     },
   }), [supported, start]);
@@ -63,7 +69,22 @@ export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
     onOpenChange(false);
   }
 
-  function retry() { setResult(null); speech.start(); }
+  function retry() { setResult(null); setTyping(false); speech.start(); }
+
+  /** Pasa al dictado con teclado. El foco va dentro del toque: si no, el iPhone no abre el teclado. */
+  function switchToKeyboard() {
+    speech.cancel();
+    setResult(null);
+    setTyping(true);
+    inputRef.current?.focus();
+  }
+  function submitTyped() {
+    const text = typed.trim();
+    if (!text) return;
+    inputRef.current?.blur();
+    setTyping(false);
+    setResult(parseSpoken(text, hh.categories, hh.history, hh.today));
+  }
   function manual() {
     onOpenChange(false);
     onManual(result ? { kind: result.kind, amount: result.amount ?? undefined, note: result.note, category_id: result.category?.id ?? null, occurred_on: result.date } : undefined);
@@ -74,7 +95,12 @@ export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
 
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) speech.cancel(); onOpenChange(o); }} title="Dictar movimiento" hideTitle
-      footer={result ? (
+      footer={typing && !result ? (
+        <div className="flex gap-2">
+          <button type="button" className="btn btn-lg w-14 shrink-0 px-0" onClick={retry} aria-label="Volver a dictar con la voz"><Mic size={20} /></button>
+          <button type="button" className="btn btn-primary btn-lg flex-1" disabled={!typed.trim()} onClick={submitTyped}><Check size={20} /> Listo</button>
+        </div>
+      ) : result ? (
         result.amount ? (
           <div className="flex gap-2">
             <button type="button" className="btn btn-lg w-14 shrink-0 px-0" onClick={retry} aria-label="Dictar de nuevo"><RotateCcw size={20} /></button>
@@ -92,16 +118,29 @@ export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
           </div>
         )
       ) : undefined}>
-      <div className="flex min-h-[340px] flex-col items-center pb-2 text-center">
+      <div className="relative flex min-h-[340px] flex-col items-center pb-2 text-center">
+        {/* Siempre montado para poder enfocarlo dentro del toque (si no, el iPhone no abre el teclado) */}
+        <textarea ref={inputRef} value={typed} onChange={(e) => setTyped(e.target.value)} rows={2} enterKeyHint="done"
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitTyped(); } }}
+          aria-label="Gasto dictado con el teclado" placeholder="Ej: Uber Eats 180"
+          className={typing && !result
+            ? "field order-last mt-4 h-auto min-h-[88px] w-full resize-none py-3 text-left text-[17px]"
+            : "pointer-events-none absolute top-0 left-0 h-px w-px opacity-0"} tabIndex={typing && !result ? 0 : -1} />
         <AnimatePresence mode="wait" initial={false}>
-          {!supported ? (
+          {typing && !result ? (
+            <motion.div key="keyboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex w-full flex-col items-center gap-2 pt-4">
+              <span className="grid size-14 place-items-center rounded-full bg-accent-soft text-accent"><Keyboard size={26} /></span>
+              <p className="text-[17px] font-semibold">Dictá con el teclado</p>
+              <p className="max-w-[34ch] text-[14px] text-ink-2">Tocá el <b className="text-ink">micrófono del teclado</b> y decí el gasto, por ejemplo <i>“Uber Eats 180”</i>. Después tocá <b className="text-ink">Listo</b>.</p>
+            </motion.div>
+          ) : !supported ? (
             <motion.div key="unsupported" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-3 pt-6">
               <span className="grid size-16 place-items-center rounded-full bg-surface-2 text-ink-3"><Mic size={28} /></span>
               <p className="text-[17px] font-semibold">Este navegador no transcribe voz</p>
               <p className="max-w-[34ch] text-[14px] text-ink-2">
-                Usá el <b className="text-ink">micrófono del teclado</b> en el campo “¿En qué?”: decí por ejemplo <i>“súper 2 mil 300”</i> y Dilak completa el monto y la categoría solo.
+                Usá el <b className="text-ink">micrófono del teclado</b>: decí por ejemplo <i>“súper 2 mil 300”</i> y Dilak completa el monto y la categoría solo.
               </p>
-              <button type="button" className="btn btn-primary mt-2" onClick={manual}><Keyboard size={18} /> Abrir la carga</button>
+              <button type="button" className="btn btn-primary mt-2" onClick={switchToKeyboard}><Keyboard size={18} /> Dictar con el teclado</button>
             </motion.div>
           ) : result ? (
             <motion.div key="result" initial={{ opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="flex w-full flex-col items-center gap-4 pt-2">
@@ -166,9 +205,17 @@ export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
                 )}
               </div>
               {listening ? (
-                <button type="button" className="btn btn-sm" onClick={speech.stop}><Square size={13} /> Listo</button>
+                <div className="flex flex-col items-center gap-2">
+                  <button type="button" className="btn btn-sm" onClick={speech.stop}><Square size={13} /> Listo</button>
+                  {speech.stalled && !speech.interim && (
+                    <button type="button" className="btn btn-sm btn-ghost text-accent" onClick={switchToKeyboard}><Keyboard size={15} /> ¿No te escucha? Dictar con el teclado</button>
+                  )}
+                </div>
               ) : (
-                <button type="button" className="btn btn-sm btn-ghost" onClick={manual}><Keyboard size={15} /> Prefiero escribir</button>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <button type="button" className={speech.error === "stuck" ? "btn btn-sm btn-primary" : "btn btn-sm"} onClick={switchToKeyboard}><Keyboard size={15} /> Dictar con el teclado</button>
+                  <button type="button" className="btn btn-sm btn-ghost" onClick={manual}>Cargar a mano</button>
+                </div>
               )}
             </motion.div>
           )}
