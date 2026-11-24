@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="fixed inset-x-0 top-0 z-30 h-[env(safe-area-inset-top)] bg-bg" aria-hidden="true" />
 
       {/* Barra lateral (compu) */}
-      <aside style={{ viewTransitionName: "app-side" }}
+      <aside
         className="fixed inset-y-0 left-0 z-30 hidden w-[244px] flex-col border-r border-line bg-surface/55 px-3 pt-5 pb-4 backdrop-blur-xl md:flex">
         <Link href="/" className="mb-6 flex items-center gap-2.5 px-2">
           <LogoMark size={34} />
@@ -112,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const on = i === current;
             const Icon = n.icon;
             return (
-              <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined} transitionTypes={[i > current ? "nav-forward" : "nav-back"]}
+              <Link key={n.href} href={n.href} aria-current={on ? "page" : undefined}
                 className={cn("relative flex h-10 items-center gap-3 rounded-xl px-3 text-[14px] font-medium transition-colors", on ? "text-ink" : "text-ink-2 hover:text-ink")}>
                 {on && <motion.span layoutId="side-active" className="absolute inset-0 -z-10 rounded-xl border border-line bg-surface-2" />}
                 {on && <motion.span layoutId="side-bar" className="absolute top-2.5 bottom-2.5 left-0 w-[3px] rounded-full bg-gradient-to-b from-accent to-accent-2" />}
@@ -134,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="md:pl-[244px]">
         {/* Encabezado */}
-        <header style={{ viewTransitionName: "app-chrome" }} className="sticky top-[env(safe-area-inset-top)] z-20 bg-bg/70 backdrop-blur-xl">
+        <header className="sticky top-[env(safe-area-inset-top)] z-20 bg-bg/70 backdrop-blur-xl">
           <div className="mx-auto flex h-16 max-w-[1120px] items-center gap-3 pr-[max(16px,env(safe-area-inset-right))] pl-[max(16px,env(safe-area-inset-left))] md:px-8">
             <Link href="/" className="mr-auto flex items-center gap-2 md:hidden" aria-label="Inicio">
               <LogoMark size={32} />
@@ -156,10 +156,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Dock flotante (celular) */}
-      <nav aria-label="Secciones" style={{ viewTransitionName: "app-dock" }}
+      <nav aria-label="Secciones"
         className="fixed inset-x-0 bottom-0 z-40 px-[max(12px,env(safe-area-inset-left))] pb-[max(12px,env(safe-area-inset-bottom))] md:hidden">
         <div className="mx-auto grid max-w-[460px] grid-cols-5 items-center rounded-[24px] border border-line bg-surface/80 p-1.5 shadow-pop backdrop-blur-2xl">
-          {NAV.slice(0, 2).map((n, i) => <DockItem key={n.href} {...n} on={i === current} type={i > current ? "nav-forward" : "nav-back"} />)}
+          {NAV.slice(0, 2).map((n, i) => <DockItem key={n.href} {...n} on={i === current} />)}
           <div className="flex justify-center">
             <motion.button type="button" aria-label="Nuevo movimiento (mantené apretado para dictar)" whileTap={{ scale: 0.88 }}
               onClick={() => { if (!longPressed.current) ui.openNewTx(); }}
@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </motion.span>
             </motion.button>
           </div>
-          {NAV.slice(2, 4).map((n, j) => { const i = j + 2; return <DockItem key={n.href} {...n} on={i === current} type={i > current ? "nav-forward" : "nav-back"} />; })}
+          {NAV.slice(2, 4).map((n, j) => { const i = j + 2; return <DockItem key={n.href} {...n} on={i === current} />; })}
         </div>
       </nav>
 
@@ -181,9 +181,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function DockItem({ href, label, icon: Icon, on, type }: (typeof NAV)[number] & { on: boolean; type: string }) {
+function DockItem({ href, label, icon: Icon, on }: (typeof NAV)[number] & { on: boolean }) {
   return (
-    <Link href={href} aria-current={on ? "page" : undefined} transitionTypes={[type]}
+    <Link href={href} aria-current={on ? "page" : undefined}
       className={cn("relative flex h-[52px] flex-col items-center justify-center gap-0.5 rounded-[18px] text-[10.5px] font-medium transition-colors", on ? "text-ink" : "text-ink-3")}>
       {on && <motion.span layoutId="dock-active" className="absolute inset-0 -z-10 rounded-[18px] bg-surface-3/80" transition={{ type: "spring", stiffness: 450, damping: 36 }} />}
       <Icon size={20} strokeWidth={on ? 2.3 : 1.9} className={on ? "text-accent" : ""} />

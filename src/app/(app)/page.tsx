@@ -124,7 +124,7 @@ export default function Inicio() {
         </div>
 
         <RevealItem>
-          <Section eyebrow="Actividad" title="Últimos movimientos" aside={txs.length > 0 ? <Link href="/movimientos" className="text-accent" transitionTypes={["nav-forward"]}>Ver todos</Link> : undefined}>
+          <Section eyebrow="Actividad" title="Últimos movimientos" aside={txs.length > 0 ? <Link href="/movimientos" className="text-accent">Ver todos</Link> : undefined}>
             {loading ? (
               <div className="flex flex-col gap-2">{[0, 1, 2].map((i) => <div key={i} className="skeleton h-14" />)}</div>
             ) : txs.length === 0 ? (
