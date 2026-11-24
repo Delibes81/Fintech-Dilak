@@ -41,11 +41,21 @@ const WAIT_FOR_SPEECH_MS = 10_000;
 /** Si el micrófono no llegó a abrirse en este tiempo, quedó tomado por otra sesión. */
 const MIC_OPEN_GRACE_MS = 1_500;
 
-/** Mensajes claros para cada error del reconocimiento de voz. */
+const isIOS = () =>
+  typeof navigator !== "undefined" &&
+  (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+const PERMISSION_ERRORS = new Set(["not-allowed", "service-not-allowed"]);
+
+/** Mensajes claros para cada error del reconocimiento de voz (con los pasos según el teléfono). */
 export function speechErrorText(code: string | null) {
   switch (code) {
+    case "denied": return isIOS()
+      ? "El micrófono está bloqueado para Dilak. En el iPhone andá a Ajustes → Safari → Micrófono, elegí “Permitir” y volvé a intentar."
+      : "El micrófono está bloqueado para Dilak. En Chrome: ⋮ → Configuración → Configuración de sitios → Micrófono, desbloqueá Dilak y volvé a intentar.";
     case "not-allowed":
-    case "service-not-allowed": return "No pudimos usar el micrófono. Tocá el botón para intentar de nuevo; si sigue igual, revisá el permiso del micrófono en la configuración del sitio.";
+    case "service-not-allowed": return isIOS()
+      ? "El iPhone no dejó usar el reconocimiento de voz. Revisá que esté activado el dictado (Ajustes → General → Teclado → Activar dictado) y el permiso de micrófono (Ajustes → Safari → Micrófono), y tocá el micrófono de nuevo."
+      : "No pudimos usar el micrófono. Tocá el botón para intentar de nuevo; si sigue igual, revisá el permiso del micrófono de Dilak en la configuración de sitios de Chrome.";
     case "no-speech": return "No te escuché. Tocá el micrófono y hablá cerca del teléfono.";
     case "audio-capture":
     case "mic-busy": return "El micrófono quedó ocupado. Tocá el botón para reintentar; si sigue, cerrá Dilak por completo y volvé a abrirla, o usá el micrófono del teclado.";
@@ -63,7 +73,7 @@ export function speechErrorText(code: string | null) {
  * - Cada sesión ignora los eventos de reconocedores viejos (un `onend` tardío no pisa al nuevo).
  * - Si el reconocedor corta sin marcar el texto como final, usa lo último que se oyó.
  * - Si corta por silencio antes de que la persona hable, vuelve a escuchar solo (hasta 10 s).
- * - Libera el micrófono al salir de la app, para que no quede tomado la próxima vez.
+ * - Libera el micrófono al cerrar la app, para que no quede tomado la próxima vez.
  */
 export function useSpeech(onFinal: (text: string) => void) {
   const [status, setStatus] = useState<SpeechStatus>("idle");
@@ -74,9 +84,23 @@ export function useSpeech(onFinal: (text: string) => void) {
   const onFinalRef = useRef(onFinal);
   useEffect(() => { onFinalRef.current = onFinal; }, [onFinal]);
 
-  const fail = useCallback((code: string) => { setError(code); setStatus("error"); setInterim(""); }, []);
+  const fail = useCallback((code: string) => {
+    setError(code); setStatus("error"); setInterim("");
+    // Si el permiso quedó bloqueado, lo decimos con los pasos para desbloquearlo
+    if (PERMISSION_ERRORS.has(code)) {
+      navigator.permissions?.query({ name: "microphone" as PermissionName })
+        .then((p) => { if (p.state === "denied") setError((e) => (e === code ? "denied" : e)); })
+        .catch(() => { /* el navegador no informa permisos */ });
+    }
+  }, []);
 
-  const start = useCallback(() => {
+  /**
+   * Empieza a escuchar. `auto`: lo abrió la app sola (atajo o mantener apretado), no un toque
+   * directo; si el navegador lo rechaza por falta de toque, queda esperando que toquen el micrófono
+   * en vez de mostrar un error de permisos.
+   */
+  const start = useCallback((opts?: { auto?: boolean }) => {
+    const auto = opts?.auto === true;
     const Ctor = getCtor();
     if (!Ctor) return fail("unsupported");
     const prev = recRef.current;
@@ -89,7 +113,19 @@ export function useSpeech(onFinal: (text: string) => void) {
     try { navigator.vibrate?.(10); } catch { /* sin vibración */ }
     const since = Date.now();
 
-    function listen(R: RecognizerCtor) {
+    /** Error de un intento: decide qué mostrar. */
+    function settle(code: string, attempt: number, micOpened: boolean) {
+      recRef.current = null;
+      if (PERMISSION_ERRORS.has(code)) {
+        // Arranque automático sin toque: esperamos el toque en silencio
+        if (auto && attempt === 0 && !micOpened) { setStatus("idle"); setInterim(""); return; }
+        // Al reintentar tras un silencio algunos navegadores piden un toque nuevo: no es un problema de permisos
+        if (attempt > 0) return fail("no-speech");
+      }
+      fail(code);
+    }
+
+    function listen(R: RecognizerCtor, attempt: number) {
       const rec = new R();
       rec.lang = speechLang();
       rec.continuous = false;
@@ -122,7 +158,7 @@ export function useSpeech(onFinal: (text: string) => void) {
         if (!current()) return; // cancelado o reemplazado por otra sesión
         const text = (finalText + partial).trim();
         if (text) { recRef.current = null; setStatus("idle"); setInterim(""); onFinalRef.current(text); return; }
-        if (failed && failed !== "no-speech") { recRef.current = null; return fail(failed); }
+        if (failed && failed !== "no-speech") return settle(failed, attempt, micOpened);
         // No llegó a abrir el micrófono: quedó tomado (pasa en iPhone tras varias sesiones)
         if (!failed && !micOpened && Date.now() - startedAt < MIC_OPEN_GRACE_MS) { recRef.current = null; return fail("mic-busy"); }
         // Cortó por silencio: si la persona no tocó "Listo", seguimos escuchando un rato más
@@ -131,7 +167,7 @@ export function useSpeech(onFinal: (text: string) => void) {
           setTimeout(() => {
             if (recRef.current !== rec) return;
             if (userStopRef.current) { recRef.current = null; fail("no-speech"); return; }
-            listen(R);
+            listen(R, attempt + 1);
           }, 150);
           return;
         }
@@ -140,10 +176,10 @@ export function useSpeech(onFinal: (text: string) => void) {
       };
 
       recRef.current = rec;
-      try { rec.start(); } catch { if (current()) { recRef.current = null; fail("not-allowed"); } }
+      try { rec.start(); } catch { if (current()) settle("not-allowed", attempt, false); }
     }
 
-    listen(Ctor);
+    listen(Ctor, 0);
   }, [fail]);
 
   const stop = useCallback(() => {
@@ -160,13 +196,11 @@ export function useSpeech(onFinal: (text: string) => void) {
     setInterim("");
   }, []);
 
-  // Si la app pasa a segundo plano mientras escucha, soltamos el micrófono.
+  // Al cerrar la app soltamos el micrófono. (No en "visibilitychange": algunos teléfonos ocultan
+  // la página mientras muestran el aviso de permiso del micrófono y eso cortaba el dictado.)
   useEffect(() => {
-    const onHide = () => { if (document.visibilityState === "hidden") cancel(); };
-    document.addEventListener("visibilitychange", onHide);
     window.addEventListener("pagehide", cancel);
     return () => {
-      document.removeEventListener("visibilitychange", onHide);
       window.removeEventListener("pagehide", cancel);
       const rec = recRef.current;
       recRef.current = null;

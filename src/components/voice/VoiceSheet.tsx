@@ -30,7 +30,7 @@ export function VoiceSheet({ open, onOpenChange, onManual }: {
   // Empieza a escuchar apenas se abre (todavía dentro del gesto que la abrió)
   const { start, cancel } = speech;
   useEffect(() => {
-    if (open && supported) start();
+    if (open && supported) start({ auto: true });
     return () => cancel();
   }, [open, supported, start, cancel]);
 
@@ -149,7 +149,10 @@ export function VoiceSheet({ open, onOpenChange, onManual }: {
                     </>
                   )
                 ) : speech.error ? (
-                  <p className="mx-auto max-w-[34ch] text-[14px] text-neg">{speechErrorText(speech.error)}</p>
+                  <>
+                    <p className="mx-auto max-w-[36ch] text-[14px] text-neg">{speechErrorText(speech.error)}</p>
+                    <p className="mt-1 text-[11.5px] text-ink-3">Código: {speech.error}</p>
+                  </>
                 ) : (
                   <p className="text-[15px] text-ink-2">Tocá el micrófono y decí el gasto</p>
                 )}
