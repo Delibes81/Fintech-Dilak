@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useImperativeHandle, useState, type Ref } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Keyboard, Mic, RotateCcw, Square } from "lucide-react";
 import { toast } from "sonner";
@@ -16,9 +16,12 @@ import type { NewTx } from "@/lib/types";
 
 const EXAMPLES = ["“Gasté 12 mil en farmacia”", "“Ayer 500 de gasolina”", "“Cobré la quincena, 18 mil”", "“Súper 2 mil 300 categoría supermercado”"];
 
+/** Control desde quien abre la hoja: empieza a escuchar dentro del mismo toque. */
+export interface VoiceHandle { listen: (auto: boolean) => void }
+
 /** Dictar un movimiento: escuchar → confirmar → guardar. */
-export function VoiceSheet({ open, onOpenChange, onManual }: {
-  open: boolean; onOpenChange: (o: boolean) => void; onManual: (prefill?: Partial<NewTx>) => void;
+export function VoiceSheet({ open, onOpenChange, onManual, ref }: {
+  open: boolean; onOpenChange: (o: boolean) => void; onManual: (prefill?: Partial<NewTx>) => void; ref?: Ref<VoiceHandle>;
 }) {
   const hh = useHousehold();
   const supported = useSpeechSupported();
@@ -27,12 +30,17 @@ export function VoiceSheet({ open, onOpenChange, onManual }: {
   const [example, setExample] = useState(0);
   const speech = useSpeech((text) => setResult(parseSpoken(text, hh.categories, hh.history, hh.today)));
 
-  // Empieza a escuchar apenas se abre (todavía dentro del gesto que la abrió)
+  // Arranca desde el toque que abre la hoja (no en un efecto posterior): así el teléfono abre el micrófono
   const { start, cancel } = speech;
-  useEffect(() => {
-    if (open && supported) start({ auto: true });
-    return () => cancel();
-  }, [open, supported, start, cancel]);
+  useImperativeHandle(ref, () => ({
+    listen(auto: boolean) {
+      setResult(null);
+      setSaving(false);
+      if (supported) start({ auto });
+    },
+  }), [supported, start]);
+  // Al cerrar la hoja, soltamos el micrófono
+  useEffect(() => { if (!open) cancel(); }, [open, cancel]);
 
   useEffect(() => {
     if (speech.status !== "listening") return;

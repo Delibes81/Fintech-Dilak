@@ -16,7 +16,7 @@ export function VoiceWidget() {
     return () => clearInterval(t);
   }, []);
   return (
-    <motion.button type="button" onClick={openVoice} whileTap={{ scale: 0.98 }} aria-label="Dictar un gasto por voz"
+    <motion.button type="button" onClick={() => openVoice()} whileTap={{ scale: 0.98 }} aria-label="Dictar un gasto por voz"
       className="group card beam relative flex w-full items-center gap-3.5 overflow-hidden p-3 pr-4 text-left">
       <span className="relative grid size-12 shrink-0 place-items-center">
         <motion.span className="absolute inset-0 rounded-2xl bg-accent/30" animate={{ scale: [1, 1.25, 1], opacity: [0.6, 0, 0.6] }}

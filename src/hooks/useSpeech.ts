@@ -40,6 +40,10 @@ export type SpeechStatus = "idle" | "listening" | "error";
 const WAIT_FOR_SPEECH_MS = 10_000;
 /** Si el micrófono no llegó a abrirse en este tiempo, quedó tomado por otra sesión. */
 const MIC_OPEN_GRACE_MS = 1_500;
+/** Silencio después de hablar que da la frase por terminada (Safari en iPhone no corta solo). */
+const END_OF_SPEECH_MS = 1_300;
+/** Si tras pedir que corte no termina, damos por buena la frase igual. */
+const STOP_GRACE_MS = 1_200;
 
 const isIOS = () =>
   typeof navigator !== "undefined" &&
@@ -73,6 +77,7 @@ export function speechErrorText(code: string | null) {
  * - Cada sesión ignora los eventos de reconocedores viejos (un `onend` tardío no pisa al nuevo).
  * - Si el reconocedor corta sin marcar el texto como final, usa lo último que se oyó.
  * - Si corta por silencio antes de que la persona hable, vuelve a escuchar solo (hasta 10 s).
+ * - Si la persona ya habló y se queda callada 1,3 s, corta solo (Safari en iPhone seguía escuchando).
  * - Libera el micrófono al cerrar la app, para que no quede tomado la próxima vez.
  */
 export function useSpeech(onFinal: (text: string) => void) {
@@ -136,7 +141,30 @@ export function useSpeech(onFinal: (text: string) => void) {
       let partial = "";
       let failed: string | null = null;
       let micOpened = false;
+      let silenceTimer: ReturnType<typeof setTimeout> | undefined;
+      let stopTimer: ReturnType<typeof setTimeout> | undefined;
       const current = () => recRef.current === rec;
+      const clearTimers = () => { clearTimeout(silenceTimer); clearTimeout(stopTimer); };
+
+      /** Entrega la frase y suelta el micrófono. */
+      function deliver(text: string) {
+        clearTimers();
+        recRef.current = null;
+        setStatus("idle");
+        setInterim("");
+        onFinalRef.current(text);
+      }
+      /** Ya habló y hubo silencio: pedimos que corte; si no corta, entregamos igual y lo abortamos. */
+      function finishSpeech() {
+        if (!current()) return;
+        try { rec.stop(); } catch { /* ya estaba cortando */ }
+        stopTimer = setTimeout(() => {
+          if (!current()) return;
+          const text = (finalText + partial).trim();
+          rec.abort(); // su onend llega tarde y se ignora: recRef ya no apunta a este reconocedor
+          if (text) deliver(text); else { recRef.current = null; fail("no-speech"); }
+        }, STOP_GRACE_MS);
+      }
 
       rec.onaudiostart = () => { micOpened = true; };
       rec.onresult = (e) => {
@@ -148,16 +176,21 @@ export function useSpeech(onFinal: (text: string) => void) {
           if (r.isFinal) finalText += r[0].transcript + " ";
           else partial += r[0].transcript;
         }
-        setInterim((finalText + partial).trim());
+        const heard = (finalText + partial).trim();
+        setInterim(heard);
+        // Cada palabra nueva reinicia la espera; tras un silencio corto, la frase está lista
+        clearTimeout(silenceTimer);
+        if (heard) silenceTimer = setTimeout(finishSpeech, END_OF_SPEECH_MS);
       };
       rec.onerror = (e) => {
         if (!current() || e.error === "aborted") return;
         failed = e.error;
       };
       rec.onend = () => {
-        if (!current()) return; // cancelado o reemplazado por otra sesión
+        if (!current()) { clearTimers(); return; } // cancelado o reemplazado por otra sesión
+        clearTimers();
         const text = (finalText + partial).trim();
-        if (text) { recRef.current = null; setStatus("idle"); setInterim(""); onFinalRef.current(text); return; }
+        if (text) return deliver(text);
         if (failed && failed !== "no-speech") return settle(failed, attempt, micOpened);
         // No llegó a abrir el micrófono: quedó tomado (pasa en iPhone tras varias sesiones)
         if (!failed && !micOpened && Date.now() - startedAt < MIC_OPEN_GRACE_MS) { recRef.current = null; return fail("mic-busy"); }

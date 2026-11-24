@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { ChartNoAxesCombined, ChevronLeft, ChevronRight, House, ListFilter, Mic, Plus, Settings, Target } from "lucide-react";
-import { VoiceSheet } from "@/components/voice/VoiceSheet";
+import { VoiceSheet, type VoiceHandle } from "@/components/voice/VoiceSheet";
 import { useHousehold } from "@/store/household";
 import { UiContext, type UiCtx } from "@/store/ui";
 import { TxSheet, type TxSheetMode } from "@/components/tx/TxSheet";
@@ -33,13 +33,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<TxSheetMode>({ type: "new" });
   const [sheetKey, setSheetKey] = useState(0);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [voiceKey, setVoiceKey] = useState(0);
+  const voiceRef = useRef<VoiceHandle>(null);
   const current = indexOf(pathname);
 
   const ui = useMemo<UiCtx>(() => ({
     openNewTx: (prefill) => { setMode({ type: "new", prefill }); setSheetKey((k) => k + 1); setSheetOpen(true); },
     openEditTx: (tx) => { setMode({ type: "edit", tx }); setSheetKey((k) => k + 1); setSheetOpen(true); },
-    openVoice: () => { setVoiceKey((k) => k + 1); setVoiceOpen(true); },
+    openVoice: (opts) => { setVoiceOpen(true); voiceRef.current?.listen(opts?.auto === true); },
   }), []);
 
   // Atajos del ícono instalado: /?nuevo=1 abre la carga y /?voz=1 el dictado
@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     const url = new URL(window.location.href);
     const nuevo = url.searchParams.get("nuevo") === "1", voz = url.searchParams.get("voz") === "1";
     if (!nuevo && !voz) return;
-    if (voz) ui.openVoice(); else ui.openNewTx();
+    if (voz) ui.openVoice({ auto: true }); else ui.openNewTx();
     url.searchParams.delete("nuevo"); url.searchParams.delete("voz");
     window.history.replaceState(null, "", url.pathname + url.search);
   }, [ui]);
@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const longPressed = useRef(false);
   const pressStart = () => {
     longPressed.current = false;
-    pressTimer.current = setTimeout(() => { longPressed.current = true; try { navigator.vibrate?.(18); } catch { /* sin vibración */ } ui.openVoice(); }, 450);
+    pressTimer.current = setTimeout(() => { longPressed.current = true; try { navigator.vibrate?.(18); } catch { /* sin vibración */ } ui.openVoice({ auto: true }); }, 450);
   };
   const pressEnd = () => { if (pressTimer.current) clearTimeout(pressTimer.current); };
   useEffect(() => { window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [onKey]);
@@ -176,7 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
 
       <TxSheet key={sheetKey} open={sheetOpen} onOpenChange={setSheetOpen} mode={mode} />
-      <VoiceSheet key={`v${voiceKey}`} open={voiceOpen} onOpenChange={setVoiceOpen} onManual={(prefill) => ui.openNewTx(prefill)} />
+      <VoiceSheet ref={voiceRef} open={voiceOpen} onOpenChange={setVoiceOpen} onManual={(prefill) => ui.openNewTx(prefill)} />
     </UiContext>
   );
 }
