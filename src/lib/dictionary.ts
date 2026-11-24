@@ -54,6 +54,8 @@ export const DICTIONARY: Record<Role, string[]> = {
     "carne molida", "res", "cerdo", "puerco", "pescado", "queso", "crema", "jamón", "salchicha", "yogurt", "yogur",
     "mantequilla", "azúcar", "aceite", "harina", "atún", "sopa", "pasta", "cereal", "avena", "galleta", "botana",
     "sabritas", "papas", "refresco", "coca", "coca cola", "jugo", "garrafón", "hielo", "nescafé", "café soluble",
+    // Súper a domicilio por app
+    "rappi turbo", "rappi market", "rappi súper", "cornershop", "walmart express", "súper a domicilio",
     "papel de baño", "papel higiénico", "servilletas", "pañal", "toallitas", "detergente", "jabón", "cloro",
     "suavizante", "suavitel", "fabuloso", "shampoo", "pasta de dientes", "desodorante", "rastrillo", "toallas femeninas",
   ],
@@ -65,14 +67,18 @@ export const DICTIONARY: Record<Role, string[]> = {
     "latte", "frappé", "starbucks", "cielito querido", "punta del cielo", "vips", "sanborns", "toks", "casa de toño",
     "el portón", "wings army", "little caesars", "dominos", "domino s", "pizza hut", "papa johns", "mcdonalds",
     "mcdonald s", "mc donalds", "burger king", "kfc", "carls jr", "carl s jr", "subway", "wingstop", "chilis",
-    "applebees", "italiannis", "sushi itto", "krispy kreme", "dunkin", "rappi", "uber eats", "didi food", "cena",
+    "applebees", "italiannis", "sushi itto", "krispy kreme", "dunkin", "cena",
     "comida", "desayuno", "almuerzo", "brunch", "antojitos", "antojo", "restaurante", "restaurant", "fonda",
     "cocina económica", "comida corrida", "buffet", "cerveza", "chela", "michelada", "bar", "cantina", "mezcal",
     "tequila", "pulque", "pulquería", "botanero", "propina",
+    // Apps de comida a domicilio (con las formas en que el dictado suele escribirlas)
+    "uber eats", "ubereats", "uber eat", "uber its", "uber it s", "uber ets", "rappi", "rapi", "didi food",
+    "didifood", "didi comida", "pedido de comida", "comida a domicilio", "a domicilio", "delivery", "sin delantal",
   ],
   car: [
     "pemex", "oxxo gas", "bp", "shell", "mobil", "g500", "arco", "hidrosina", "gulf", "chevron", "repsol",
-    "gasolinera", "gasolina", "magna", "diésel", "combustible", "uber", "didi", "cabify", "indriver", "taxi", "metro",
+    "gasolinera", "gasolina", "magna", "diésel", "combustible", "uber", "didi", "cabify", "indriver", "indrive",
+    "uber moto", "didi moto", "uber flash", "didi express", "uber comfort", "uber planet", "bolt", "lime", "taxi", "metro",
     "metrobús", "mexibús", "macrobús", "camión", "pesero", "combi", "micro", "trolebús", "tren ligero", "suburbano",
     "ecobici", "caseta", "peaje", "tag", "iave", "televía", "estacionamiento", "parquímetro", "verificación",
     "tenencia", "refrendo", "placas", "licencia de manejo", "multa", "infracción", "llanta", "vulcanizadora",
@@ -94,6 +100,8 @@ export const DICTIONARY: Record<Role, string[]> = {
     "chatgpt", "openai", "claude", "paramount", "vix", "crunchyroll", "deezer", "game pass", "xbox game pass",
     "playstation plus", "ps plus", "nintendo online", "smart fit", "smartfit", "sport city", "sports world",
     "gimnasio", "gym", "audible", "kindle unlimited", "canva", "microsoft 365", "office 365", "dropbox", "duolingo",
+    "uber one", "rappi prime", "rappi pro", "amazon music", "tidal", "blim", "mubi", "twitch", "patreon",
+    "linkedin premium", "tinder", "bumble",
     "suscripción", "membresía",
   ],
   heart: [
@@ -119,7 +127,7 @@ export const DICTIONARY: Record<Role, string[]> = {
   ],
   card: [
     "tarjeta", "tarjeta de crédito", "pago de tarjeta", "amex", "american express", "bbva", "banamex", "santander",
-    "banorte", "hsbc", "nubank", "tarjeta nu", "stori", "rappicard", "kueski", "abono", "abono coppel",
+    "banorte", "hsbc", "nubank", "tarjeta nu", "stori", "rappicard", "kueski", "didi card", "klar", "plata card", "ualá", "vexi", "tarjeta hey", "abono", "abono coppel",
     "abono elektra", "msi", "meses sin intereses", "préstamo", "crédito", "deuda",
   ],
   ticket: [
@@ -130,7 +138,7 @@ export const DICTIONARY: Record<Role, string[]> = {
   plane: [
     "viaje", "vuelo", "boleto de avión", "avión", "aeroméxico", "volaris", "viva aerobus", "vivaaerobus", "hotel",
     "airbnb", "booking", "expedia", "hospedaje", "vacaciones", "ado", "etn", "primera plus", "autobús", "excursión",
-    "tour", "maleta",
+    "tour", "maleta", "blablacar", "despegar", "best day", "price travel", "kayak", "trivago",
   ],
   shirt: [
     "ropa", "zapatos", "tenis", "playera", "pantalón", "jeans", "vestido", "camisa", "chamarra", "sudadera",

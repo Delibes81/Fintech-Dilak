@@ -58,6 +58,18 @@ describe("diccionario de México", () => {
     expect(d("Cuidado con el perro")).toBe("ropa");
     expect(d("baño del perro")).toBe("masc");
   });
+  it("apps", () => {
+    expect(d("Uber Eats")).toBe("comida");
+    expect(d("uber its")).toBe("comida"); // así lo suele escribir el dictado
+    expect(d("DiDi Food")).toBe("comida");
+    expect(d("Rappi")).toBe("comida");
+    expect(d("Rappi Turbo")).toBe("super");
+    expect(d("Uber")).toBe("transp");
+    expect(d("DiDi moto")).toBe("transp");
+    expect(d("InDrive")).toBe("transp");
+    expect(d("Uber One")).toBe("subs");
+    expect(d("Rappi Prime")).toBe("subs");
+  });
   it("plurales y errores de una letra", () => {
     expect(d("tacos al pastor")).toBe("comida");
     expect(d("soriaba")).toBe("super");

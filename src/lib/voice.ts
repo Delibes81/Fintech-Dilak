@@ -26,7 +26,7 @@ const INCOME_WORDS = [
   "recibi", "recibimos", "deposito", "depositaron", "vendi", "vendimos", "gane", "ganamos",
 ];
 const FILLER = new Set([
-  "gaste", "gastamos", "pague", "pagamos", "compre", "compramos", "cobre", "cobramos", "recibi", "recibimos", "fue", "fueron",
+  "gaste", "gastamos", "pague", "pagamos", "compre", "compramos", "pedi", "pedimos", "cobre", "cobramos", "recibi", "recibimos", "fue", "fueron",
   "son", "es", "de", "del", "en", "el", "la", "los", "las", "un", "una", "por", "para", "con", "y", "a", "al", "me", "nos",
   "pagaron", "puse", "pusimos", "meti", "metimos", "salio", "salieron", "costo", "cuesta", "hoy", "ayer", "anteayer", "antier", "que", "lo", "le",
 ]);

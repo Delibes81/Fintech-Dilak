@@ -53,6 +53,11 @@ describe("parseSpoken", () => {
     expect(r.category?.id).toBe("salud");
     expect(r.note).toBe("Regalo para mamá");
   });
+  it("pedidos por app", () => {
+    const r = p("pedí 180 de uber eats");
+    expect(r.amount).toBe(180);
+    expect(r.note).toBe("Uber eats");
+  });
   it("sin monto", () => {
     expect(p("súper").amount).toBeNull();
   });
